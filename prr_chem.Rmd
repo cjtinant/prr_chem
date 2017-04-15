@@ -23,7 +23,9 @@ knitr::opts_chunk$set(echo = FALSE)
 #              through an literate programming, such as Sweave or R 
 #              Markdown.
 #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# Project Assignment
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Project 2: Find a different data set on the internet that lends
 # itself to analysis based on one of the data analysis methods we 
 # have covered in chapters 6, 8,11, or 12. After clearly formulating 
@@ -55,10 +57,362 @@ knitr::opts_chunk$set(echo = FALSE)
 #     your research.
 #  f. Quality of writing and presentation slides.
 #  g. Quality of verbal presentation.
+#
 ```
 
 ## Overview
 This project report, completed for partial credit for a Math 443/543 course by Dr. Kyle Caudle of the South Dakota School of Mines and Technology, utilizes principal componant and discriminant analysis to assign groups and identify possible misclassified items to test a hypothesis that watershed geology can be defined by water quality parameters.  The data are observational data of several water quality parameters.  As only a portion of the stations were sampled in any given year, a special emphasis has been made to fill in missing data so that the underlying structure of the data is not lost.
+
+```{r library}
+# https://pakillo.github.io/R-GIS-tutorial/
+library(ggmap)       # comes with a nice theme_nothing() function
+library(janitor)     # quick tools for cleaning up var names
+library(broom)       # tidies up output 
+library(lubridate)
+library(gridExtra)
+# library(knitr)       # lightweight table package
+# library(xtable)      # God let this one be the table package that works...
+# library(gridExtra)   # miscellaneous functions for "Grid" graphics
+# library(lubridate)   # makes dealing with dates a little easier
+
+
+# library(sp)         # classes for spatial data
+# library(raster)     # grids, rasters
+# library(rasterVis)  # raster visualisation
+# library(maptools)   # Tools for Reading and Handling Spatial Objects 
+# library(rgeos)      # Interface to Geometry Engine - Open Source
+
+# library(scales)    # tells ggplot what the proper scale should be
+# library(RgoogleMaps) # Overlays on Static Maps
+# library(rgdal)       # reads in shape files
+# library(tmap)        # thematic map visualization
+# library(Cairo) creates high quality vector and bitmap images
+
+# some other packages that work well and might be useful are:
+# haven,forcats, httr, hms, jsonlite, lubridate, magrittr, 
+# modelr, readxl, stringr, rvest,  xml2
+library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
+
+```
+
+```{r load.data}
+# The original xlsx file "Chemistry-1993-2013_17Mar21" was converted
+# to a csv.using Excel.  The remainder of this chunk is to clean and
+# standardize names, remove empty colums and rows, and add grouping 
+# variables.
+#
+# 1) load data
+raw <- read_csv("~/Google Drive/R-files-consolidated/BearLodge/Data/Chemistry-1993-2013_17Mar21.csv", 
+    col_types = cols(Hg = col_character()))
+
+# 2) tidy up the data with dplyr & standardize var names with janitor  
+# clean names, remove empty columns and rows
+raw <- raw %>%
+  clean_names() %>%
+  remove_empty_cols() %>%
+  filter(!is.na(sample_sites)) %>% 
+  rename(sort = x_sort) %>%
+  mutate(sample_sites = as.factor(sample_sites))
+
+# 3) add short names; need to use two steps to avoid an overflow error
+raw1 <- raw %>%
+  mutate(samp_site = 
+    if_else(sample_sites == "American Horse I", "AMH1", 
+    if_else(sample_sites == "Bear Creek I", "BEA1",
+    if_else(sample_sites == "Bear Creek II", "BEA2",    
+    if_else(sample_sites == "Bear Creek III", "BEA3",
+    if_else(sample_sites == "Bear in the Lodge I", "BEL1",
+    if_else(sample_sites == "Bear in the Lodge II", "BEL2",
+    if_else(sample_sites == "Bear in the Lodge USGS1", "BEL_USGS",
+    if_else(sample_sites == "Bear in the Lodge USGS2", "BEL_USGS",
+    if_else(sample_sites == "Bear in the Lodge USGS3", "BEL_USGS",
+    if_else(sample_sites == "Black Pipe I", "BLP1",
+    if_else(sample_sites == "Black Pipe II", "BLP2",
+    if_else(sample_sites == "Buzzard Creek I", "BUZ1",       
+    if_else(sample_sites == "Cheyenne River I", "CHR1",
+    if_else(sample_sites == "Cheyenne River II", "CHR2",
+    if_else(sample_sites == "Corn Creek I", "COR1",      
+    if_else(sample_sites == "Craven Creek I", "CRA1",
+    if_else(sample_sites == "Eagle Nest I", "EAN1",
+    if_else(sample_sites == "Eagle Nest II", "EAN2",
+    if_else(sample_sites == "Little Corn Creek I", "LCC1",
+    if_else(sample_sites == "Little White River I", "LWR1",
+    if_else(sample_sites == "Little White River II", "LWR2",
+    if_else(sample_sites == "Little White River III", "LWR3",
+    if_else(sample_sites == "Little White River IV", "LWR4",
+    if_else(sample_sites == "Long Creek I", "LON1",
+    if_else(sample_sites == "Lost Dog Creek I", "LOD1",
+    if_else(sample_sites == "Medicine Root I", "MER1",
+    if_else(sample_sites == "Medicine Root II", "MER2",      
+    if_else(sample_sites == "Medicine Root III", "MER3",
+    if_else(sample_sites == "Medicine Root IV", "MER4",
+    if_else(sample_sites == "No Flesh Creek I", "NFL1",
+    if_else(sample_sites == "Pass Creek I", "PAS1",
+    if_else(sample_sites == "Pass Creek II", "PAS2",      
+    if_else(sample_sites == "Pass Creek III", "PAS3",
+    if_else(sample_sites == "Pass Creek IV", "PAS4",
+    if_else(sample_sites == "Porcupine Creek I", "POR1", 
+           "stuff" , missing = NULL))))))))))))))))))))))))))))))))))))
+   
+# 3b) split into two pieces
+raw2 <- raw1 %>%
+  filter(samp_site == "stuff")
+raw1 <- raw1 %>%
+  filter(samp_site != "stuff")
+
+# 3c) add short names for the other half
+raw2 <- raw2 %>%
+ mutate(samp_site = if_else(sample_sites == "Porcupine Creek II", "POR2",
+    if_else(sample_sites == "Porcupine Creek III", "POR3",
+    if_else(sample_sites == "Porcupine Lagoon upstream", "POR_Lagoon",
+    if_else(sample_sites == "Porcupine Lagoon downstream", "POR_Lagoon",
+    if_else(sample_sites == "Pine Ridge Lift Station Downstream", "WCC_Lagoon",
+    if_else(sample_sites == "Potato Creek", "POT1",
+    if_else(sample_sites == "Red Water Creek", "RED1",
+    if_else(sample_sites == "White Clay Creek I", "WCC1", 
+    if_else(sample_sites == "White Clay Creek II", "WCC2",
+    if_else(sample_sites == "White Clay Creek III", "WCC3",
+    if_else(sample_sites == "Wolf Creek I", "WOL1",
+    if_else(sample_sites == "White River I", "WHR1",
+    if_else(sample_sites == "White River II", "WHR2",      
+    if_else(sample_sites == "White River III", "WHR3",
+    if_else(sample_sites == "White River IV", "WHR4",
+    if_else(sample_sites == "White River V", "WHR5",
+    if_else(sample_sites == "Wounded Knee I", "WOK1",
+    if_else(sample_sites == "Wounded Knee II", "WOK2",
+    if_else(sample_sites == "Wounded Knee III", "WOK3",
+    if_else(sample_sites == "Wounded Knee IV", "WOK4",
+    if_else(sample_sites == "Wounded Knee Lagoon (downstream)", "WOK_Lagoon", 
+            "other", missing = NULL))))))))))))))))))))))
+
+# 3d) bind the two parts together
+raw <- bind_rows(raw1, raw2)
+rm(raw1, raw2)
+
+# add subwatersheds
+raw <- raw %>%
+ mutate(subws = 
+   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
+     samp_site == "WCC3" | samp_site == "WOL1" |
+     samp_site == "WHR1" | samp_site == "WCC_Lagoon", 
+     "WhU",
+       if_else(samp_site == "POR1" | samp_site == "POR2" |
+         samp_site == "POR3" | samp_site == "POR_Lagoon" | 
+         samp_site == "WOK1" | samp_site == "WOK2" |
+         samp_site == "WOK3" | samp_site == "WOK4" |
+         samp_site == "WOK_Lagoon" | samp_site == "WHR2",
+         "WhW", 
+            if_else(samp_site =="AMH1" | samp_site == "RED1" |
+              samp_site == "MER1" | samp_site == "MER2" |
+              samp_site == "MER3" | samp_site == "MER4" |
+              samp_site == "NFL1" | samp_site == "WHR3",
+              "WhM",
+                 if_else(samp_site == "BEA1" | samp_site == "BEA2" |
+                    samp_site == "BEA3" | samp_site == "BEL1" |
+                    samp_site == "BEL2" | samp_site == "BEL_USGS" |
+                    samp_site == "LOD1" | samp_site == "COR1" |
+                    samp_site == "EAN1" | samp_site == "EAN2" | 
+                    samp_site == "WHR5" | samp_site == "POT1" |
+                    samp_site == "LON1" | samp_site == "CRA1" |
+                    samp_site == "BUZ1" | samp_site == "RED1",
+                    "WhB", 
+                       if_else(samp_site == "LCC1" | samp_site == "WHR4" |
+                         samp_site == "PAS1" | samp_site == "PAS2" |
+                         samp_site == "PAS3" | samp_site == "PAS4" |
+                         samp_site == "BLP1" | samp_site == "BLP2",
+                         "WhP", 
+                            if_else(samp_site == "CHR1" |
+                                    samp_site == "CHR2", "ChR", 
+                                    "LWR" ))))))) 
+
+# 4) add ecoregions
+raw <- raw %>%
+ mutate(ecoregion = 
+   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
+           samp_site == "POR1" | samp_site == "POR2" |
+           samp_site == "WOK2" | samp_site == "WOK3" | 
+           samp_site == "AMH1" | samp_site == "RED1" |
+           samp_site == "MER1" | samp_site == "MER2" |
+           samp_site == "MER3" | samp_site == "NFL1" |
+           samp_site == "BEA1" | samp_site == "BEA2" |
+           samp_site == "BEA3" | samp_site == "BEL1" |   
+           samp_site == "LOD1" | samp_site == "COR1" |
+           samp_site == "EAN1" | samp_site == "POT1" |
+           samp_site == "LON1" | samp_site == "CRA1" |
+           samp_site == "BUZ1" | samp_site == "RED1" |
+           samp_site == "LCC1" | samp_site == "BLP1" |
+           samp_site == "PAS1" | samp_site == "PAS2" |
+           samp_site == "BLP2" | samp_site == "WHR1",
+           "TabLand", 
+           if_else(samp_site == "WCC3" | samp_site == "POR3" |
+                   samp_site == "WOK4" | samp_site == "MER4" |
+                   samp_site == "BEL2" | samp_site == "PAS3" |
+                   samp_site == "WHR2" | samp_site == "WHR3" |
+                   samp_site == "WHR4" | samp_site == "WHR5" |
+                   samp_site == "EAN2", "BadLand",
+                   if_else(samp_site == "CHR1" | samp_site == "CHR2",
+                           "CheyRiv", 
+                           if_else(samp_site == "WCC_Lagoon" |
+                                   samp_site == "POR_Lagoon" |
+                                   samp_site == "WOK_Lagoon" |
+                                   samp_site == "BEL_USGS", "other",
+                                   "LWR")))))
+```
+
+```{r munge.data}
+# clean up the loaded raw data by assigning data types, creating
+# consistant NA values, adding censored data as NA, adding additional
+# grouping variables, 
+
+cleaned <- raw %>%
+  mutate(flow_cfs = as.factor(flow_cfs)) %>%
+  mutate(high_low = as.factor(high_low)) %>%
+  mutate(notes = as.factor(notes)) %>%
+  mutate(date = mdy(date)) %>%
+  mutate(time = hm(time)) %>%
+  mutate(depth_ft = as.numeric(depth_ft)) %>%
+  mutate(width_ft = as.numeric(width_ft)) %>%
+  mutate(high_low = as.factor(high_low)) %>%
+  mutate(cond = if_else(cond == "error", "NA", cond)) %>%
+  mutate(cond = as.numeric(cond)) %>%
+  mutate(do = if_else(do == "error", "NA", do)) %>%
+  mutate(do = as.numeric(do)) %>%
+  mutate(turb = if_else(turb == "nd", "NA", turb)) %>%
+  mutate(turb = as.numeric(turb)) %>%
+  mutate(nh3 = if_else(nh3 == "nd", "0.025", nh3)) %>%
+  mutate(nh3 = as.numeric(nh3)) %>%
+  mutate(mg = if_else(mg == "nd", "0.5", mg)) %>%
+  mutate(mg = as.numeric(mg)) %>%
+  mutate(alk = as.numeric(alk)) %>%
+  rename(cl = ci) %>%
+  rename(f = fi) %>%
+  rename(so4 = s) %>%
+  mutate(so4 = as.numeric(so4)) %>%
+  mutate(nate = if_else(nate == "nd", "0.05", nate)) %>%
+  mutate(nate = as.numeric(nate)) %>%
+  mutate(op = if_else(op == "nd", "0.005", op)) %>%
+  mutate(op = as.numeric(op)) %>%
+  mutate(tp = if_else(tp == "nd", "0.005", tp)) %>%
+  mutate(tp = as.numeric(tp)) %>%
+  mutate(as = if_else(as == "<0.005", "0.0025", as)) %>%
+  mutate(as = as.numeric(as)) %>%
+  mutate(as = if_else(as < 0.05, 0.025, as)) %>%
+  mutate(cu = if_else(cu == "<0.005", "0.0025", cu)) %>%
+  mutate(cu = as.numeric(cu)) %>%
+  mutate(cu = if_else(cu < 0.05, 0.025, cu)) %>%
+  mutate(pb = if_else(pb == "nd", "<0.005", pb)) %>%
+  mutate(pb = if_else(pb == "<0.005", "0.0025", pb)) %>%
+  mutate(pb = as.numeric(pb)) %>%
+  mutate(pb = if_else(pb < 0.05, 0.025, pb)) %>%
+  mutate(hg = if_else(hg == "nd", "0", hg)) %>%
+  mutate(hg = as.numeric(hg)) %>%
+  mutate(hg = if_else(hg == 0, 0.00005, hg)) %>%
+  mutate(se = if_else(se == "<.002", "0", se)) %>%
+  mutate(se = as.numeric(se)) %>%
+  mutate(se = if_else(se == 0, 0.001, se)) %>%
+  mutate(ag = if_else(ag == "<0.005", "0.0025", ag)) %>%
+  mutate(ag = as.numeric(ag)) %>%
+  mutate(ag = if_else(ag < 0.05, 0.0025, ag))%>%
+  mutate(e_coli = if_else(e_coli == ">2419.6" |
+                            e_coli == ">4839.2" |
+                            e_coli == ">24196.0"|
+                            e_coli == ">9678.4",
+                            "NA",e_coli)) %>%
+  mutate(e_coli = as.numeric(e_coli)) %>%
+  mutate(total_coli = if_else(total_coli == ">2419.6" |
+                            total_coli == ">1419.6" |  
+                            total_coli == ">4839.2" |
+                            total_coli == ">24196.0"|
+                            total_coli == ">4339.2" |  
+                            total_coli == "<241960."|
+                            total_coli == "<4839.2" |  
+                            total_coli == ">9678.4",
+                           "NA",total_coli)) %>%
+  mutate(total_coli = as.numeric(total_coli)) %>%
+  mutate(fecal_coli = as.numeric(fecal_coli)) %>%
+  mutate(bod = if_else(bod == "<12", "12",
+                   if_else(bod == "<2", "2",    
+                       if_else(bod == "<3", "3",
+                           if_else(bod == "<4", "4",
+                               if_else(bod == "<6", "6",    
+                                   if_else(bod == ">3", "3", 
+                                       if_else(bod == "nd", "1", bod
+                                               )))))))) %>%
+  mutate(bod = as.numeric(bod)) %>%
+  mutate(tss = if_else(tss == "nd", "5", tss)) %>%
+  mutate(tss = as.numeric(tss)) %>%
+  mutate(samp_site = as.factor(samp_site)) %>%
+  mutate(subws = factor(subws, levels = c("ChR","WhU","WhW","WhM","WhB","WhP","LWR"))) %>%
+  arrange(subws) %>%
+  mutate(phase = if_else(year > 2004, "Phase II", "Phase I"))%>%
+  mutate(phase = as.factor(phase)) %>%
+  filter(!is.na(year)) %>%
+  mutate(month = month(date)) %>%
+  mutate(fish_life = as.factor(if_else(samp_site =="WCC3" |
+              samp_site == "WOK1" | samp_site == "MER3" |
+                samp_site == "MER4", "Coldwater Marginal",
+                if_else(samp_site =="POR1", "Warmwater Semi-Perm",
+                        "Warmwater Permanant")))) %>%
+  mutate(temp_lim = if_else(fish_life == "Coldwater Marginal", 75,
+                if_else(fish_life =="Warmwater Semi-Perm", 90, 80))) %>%
+  select(-x52) %>%
+  mutate(ecoregion = as.factor(ecoregion)) %>%
+  select(sort, latitude, longitude, sample_sites, samp_site, subws,
+         ecoregion, date, year, month, temp_c, ph, cond, alk, hardness,
+         tp, nite, nh3, ca, mg, na, k, cl, f, so4, nate, op, everything())
+  
+## Warnings:: NAs introduced by coercion: "NA" - need to find and fix
+
+input_mass <- cleaned %>%
+  select(-flow_cfs) %>%
+  select(-high_low) %>%
+  select(-time) %>%
+  select(-d_w) %>%
+  select(-depth_ft) %>%
+  select(-width_ft) %>%
+  select(-temp_f) %>%
+  select(-temp_lim) %>%
+  select(-fish_life) %>%
+  select(-phase) %>%
+  select(-do) %>%
+  select(-notes)
+  
+glimpse(input_mass)
+
+# Data description 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Using 'cleaned' data
+# 
+# sort:         uniaue variable showing unique sample id; integer
+# latitude:     decimal latitude; double
+# longitude:    decimal longitude; double
+# sample_sites: long name of the sampling station; factor
+# samp_site:    short name of the sample station; factor
+# ecoregion:    grouping variable showing ecoregion; factor
+# date:         sampling date; date
+# year:         year of sampling; integer or factor
+# month:        month of sampling; integer or factor
+# temp_c:       temperature in centigrade; numeric
+# pH:           measured pH in -log[H] units; numeric
+# cond:         conductivity in microSemens: numeric
+# alk:          alkalinity as CaCO3, mg/L; numeric
+# hardness:     hardness as CaCO3, mg/L; numeric
+# tp:           total phosphorus, mg/L; numeric
+# nite:         nitrite, mg/L, instable in oxygen; numeric
+# nh3:          ammonia, mg/L, instable in oxygen; numeric
+# ca:           calcium, mg/L, major cation; numeric
+# mg:           magnesium, mg/L, major cation; numeric
+# na:           sodium, mg/L, major cation; numeric
+# k: 
+```
+
+```{r phase2}
+# This is for a water resources report report
+phase2 <- cleaned %>%
+  filter(year > 2007) %>%
+   mutate(year = as.factor(year))
+```
+
 
 ## 1.0	Background
 The Oglala Sioux Tribe (OST) Water Pollution Control Program is responsible for assessing non-point source impacts to streams and developing watershed protection plans to characterize impacts to water quality and to identify and implement best management practices to restore water quality.  The Oglala Lakota College (OLC)Science Technology Engineering and Mathematics (STEM) Department staff began partnering with the Tribe in 2011 to: 1) analyze and complare water quality data collected by the Oglala Sioux Tribe (OST) Water Quality Program historically from 1993-2011, and for 2012-2013, 2) integrate macroinvertebrate sampling data collected historically from 1993-2011 are for 2012-2013, and to 3) to refine recommendations for future monitoring and implementation of best management practices (BMPs). 
@@ -347,298 +701,6 @@ The water quality limits for fish life propagation given in South Dakota Legisla
 
 
 
-```{r library}
-# https://pakillo.github.io/R-GIS-tutorial/
-library(ggmap)       # comes with a nice theme_nothing() function
-library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
-library(janitor)     # quick tools for cleaning up var names
-library(broom)
-library(lubridate)
-library(gridExtra)
-# library(knitr)       # lightweight table package
-# library(xtable)      # God let this one be the table package that works...
-# library(gridExtra)   # miscellaneous functions for "Grid" graphics
-# library(lubridate)   # makes dealing with dates a little easier
-
-
-# library(sp)         # classes for spatial data
-# library(raster)     # grids, rasters
-# library(rasterVis)  # raster visualisation
-# library(maptools)   # Tools for Reading and Handling Spatial Objects 
-# library(rgeos)      # Interface to Geometry Engine - Open Source
-
-# library(scales)    # tells ggplot what the proper scale should be
-# library(RgoogleMaps) # Overlays on Static Maps
-# library(rgdal)       # reads in shape files
-# library(tmap)        # thematic map visualization
-# library(Cairo) creates high quality vector and bitmap images
-
-# some other packages that work well and might be useful are:
-# haven,forcats, httr, hms, jsonlite, lubridate, magrittr, 
-# modelr, readxl, stringr, rvest,  xml2
-```
-
-```{r load.data}
-# The xlsx file "Chemistry-1993-2013_17Mar21" was converted to a csv.
-# load data
-
-raw <- read_csv("~/Google Drive/R-files-consolidated/BearLodge/Data/Chemistry-1993-2013_17Mar21.csv", 
-    col_types = cols(Hg = col_character()))
-
-# tidy up the data with dplyr & standardize var names with janitor  
-# clean names, remove empty columns and rows
-raw <- raw %>%
-  clean_names() %>%
-  remove_empty_cols() %>%
-  filter(!is.na(sample_sites)) %>% 
-  rename(sort = x_sort) %>%
-  mutate(sample_sites = as.factor(sample_sites))
-
-# add short names; need to use two steps to avoid an overflow error
-raw1 <- raw %>%
-  mutate(samp_site = 
-    if_else(sample_sites == "American Horse I", "AMH1", 
-    if_else(sample_sites == "Bear Creek I", "BEA1",
-    if_else(sample_sites == "Bear Creek II", "BEA2",    
-    if_else(sample_sites == "Bear Creek III", "BEA3",
-    if_else(sample_sites == "Bear in the Lodge I", "BEL1",
-    if_else(sample_sites == "Bear in the Lodge II", "BEL2",
-    if_else(sample_sites == "Bear in the Lodge USGS1", "BEL_USGS",
-    if_else(sample_sites == "Bear in the Lodge USGS2", "BEL_USGS",
-    if_else(sample_sites == "Bear in the Lodge USGS3", "BEL_USGS",
-    if_else(sample_sites == "Black Pipe I", "BLP1",
-    if_else(sample_sites == "Black Pipe II", "BLP2",
-    if_else(sample_sites == "Buzzard Creek I", "BUZ1",       
-    if_else(sample_sites == "Cheyenne River I", "CHR1",
-    if_else(sample_sites == "Cheyenne River II", "CHR2",
-    if_else(sample_sites == "Corn Creek I", "COR1",      
-    if_else(sample_sites == "Craven Creek I", "CRA1",
-    if_else(sample_sites == "Eagle Nest I", "EAN1",
-    if_else(sample_sites == "Eagle Nest II", "EAN2",
-    if_else(sample_sites == "Little Corn Creek I", "LCC1",
-    if_else(sample_sites == "Little White River I", "LWR1",
-    if_else(sample_sites == "Little White River II", "LWR2",
-    if_else(sample_sites == "Little White River III", "LWR3",
-    if_else(sample_sites == "Little White River IV", "LWR4",
-    if_else(sample_sites == "Long Creek I", "LON1",
-    if_else(sample_sites == "Lost Dog Creek I", "LOD1",
-    if_else(sample_sites == "Medicine Root I", "MER1",
-    if_else(sample_sites == "Medicine Root II", "MER2",      
-    if_else(sample_sites == "Medicine Root III", "MER3",
-    if_else(sample_sites == "Medicine Root IV", "MER4",
-    if_else(sample_sites == "No Flesh Creek I", "NFL1",
-    if_else(sample_sites == "Pass Creek I", "PAS1",
-    if_else(sample_sites == "Pass Creek II", "PAS2",      
-    if_else(sample_sites == "Pass Creek III", "PAS3",
-    if_else(sample_sites == "Pass Creek IV", "PAS4",
-    if_else(sample_sites == "Porcupine Creek I", "POR1", 
-           "stuff" , missing = NULL))))))))))))))))))))))))))))))))))))
-   
-# split into two pieces
-raw2 <- raw1 %>%
-  filter(samp_site == "stuff")
-raw1 <- raw1 %>%
-  filter(samp_site != "stuff")
-
-# add short names for the other half
-raw2 <- raw2 %>%
- mutate(samp_site = if_else(sample_sites == "Porcupine Creek II", "POR2",
-    if_else(sample_sites == "Porcupine Creek III", "POR3",
-    if_else(sample_sites == "Porcupine Lagoon upstream", "POR_Lagoon",
-    if_else(sample_sites == "Porcupine Lagoon downstream", "POR_Lagoon",
-    if_else(sample_sites == "Pine Ridge Lift Station Downstream", "WCC_Lagoon",
-    if_else(sample_sites == "Potato Creek", "POT1",
-    if_else(sample_sites == "Red Water Creek", "RED1",
-    if_else(sample_sites == "White Clay Creek I", "WCC1", 
-    if_else(sample_sites == "White Clay Creek II", "WCC2",
-    if_else(sample_sites == "White Clay Creek III", "WCC3",
-    if_else(sample_sites == "Wolf Creek I", "WOL1",
-    if_else(sample_sites == "White River I", "WHR1",
-    if_else(sample_sites == "White River II", "WHR2",      
-    if_else(sample_sites == "White River III", "WHR3",
-    if_else(sample_sites == "White River IV", "WHR4",
-    if_else(sample_sites == "White River V", "WHR5",
-    if_else(sample_sites == "Wounded Knee I", "WOK1",
-    if_else(sample_sites == "Wounded Knee II", "WOK2",
-    if_else(sample_sites == "Wounded Knee III", "WOK3",
-    if_else(sample_sites == "Wounded Knee IV", "WOK4",
-    if_else(sample_sites == "Wounded Knee Lagoon (downstream)", "WOK_Lagoon", 
-            "other", missing = NULL))))))))))))))))))))))
-
-# bind the two parts together
-raw <- bind_rows(raw1, raw2)
-rm(raw1, raw2)
-
-# add subwatersheds
-raw <- raw %>%
- mutate(subws = 
-   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
-     samp_site == "WCC3" | samp_site == "WOL1" |
-     samp_site == "WHR1" | samp_site == "WCC_Lagoon", 
-     "WhU",
-       if_else(samp_site == "POR1" | samp_site == "POR2" |
-         samp_site == "POR3" | samp_site == "POR_Lagoon" | 
-         samp_site == "WOK1" | samp_site == "WOK2" |
-         samp_site == "WOK3" | samp_site == "WOK4" |
-         samp_site == "WOK_Lagoon" | samp_site == "WHR2",
-         "WhW", 
-            if_else(samp_site =="AMH1" | samp_site == "RED1" |
-              samp_site == "MER1" | samp_site == "MER2" |
-              samp_site == "MER3" | samp_site == "MER4" |
-              samp_site == "NFL1" | samp_site == "WHR3",
-              "WhM",
-                 if_else(samp_site == "BEA1" | samp_site == "BEA2" |
-                    samp_site == "BEA3" | samp_site == "BEL1" |
-                    samp_site == "BEL2" | samp_site == "BEL_USGS" |
-                    samp_site == "LOD1" | samp_site == "COR1" |
-                    samp_site == "EAN1" | samp_site == "EAN2" | 
-                    samp_site == "WHR5" | samp_site == "POT1" |
-                    samp_site == "LON1" | samp_site == "CRA1" |
-                    samp_site == "BUZ1" | samp_site == "RED1",
-                    "WhB", 
-                       if_else(samp_site == "LCC1" | samp_site == "WHR4" |
-                         samp_site == "PAS1" | samp_site == "PAS2" |
-                         samp_site == "PAS3" | samp_site == "PAS4" |
-                         samp_site == "BLP1" | samp_site == "BLP2",
-                         "WhP", 
-                            if_else(samp_site == "CHR1" |
-                                    samp_site == "CHR2", "ChR", 
-                                    "LWR" ))))))) 
-
-# add ecoregions
-raw <- raw %>%
- mutate(ecoregion = 
-   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
-           samp_site == "POR1" | samp_site == "POR2" |
-           samp_site == "WOK2" | samp_site == "WOK3" | 
-           samp_site == "AMH1" | samp_site == "RED1" |
-           samp_site == "MER1" | samp_site == "MER2" |
-           samp_site == "MER3" | samp_site == "NFL1" |
-           samp_site == "BEA1" | samp_site == "BEA2" |
-           samp_site == "BEA3" | samp_site == "BEL1" |   
-           samp_site == "LOD1" | samp_site == "COR1" |
-           samp_site == "EAN1" | samp_site == "POT1" |
-           samp_site == "LON1" | samp_site == "CRA1" |
-           samp_site == "BUZ1" | samp_site == "RED1" |
-           samp_site == "LCC1" | samp_site == "BLP1" |
-           samp_site == "PAS1" | samp_site == "PAS2" |
-           samp_site == "BLP2" | samp_site == "WHR1",
-           "TabLand", 
-           if_else(samp_site == "WCC3" | samp_site == "POR3" |
-                   samp_site == "WOK4" | samp_site == "MER4" |
-                   samp_site == "BEL2" | samp_site == "PAS3" |
-                   samp_site == "WHR2" | samp_site == "WHR3" |
-                   samp_site == "WHR4" | samp_site == "WHR5" |
-                   samp_site == "EAN2", "BadLand",
-                   if_else(samp_site == "CHR1" | samp_site == "CHR2",
-                           "CheyRiv", 
-                           if_else(samp_site == "WCC_Lagoon" |
-                                   samp_site == "POR_Lagoon" |
-                                   samp_site == "WOK_Lagoon" |
-                                   samp_site == "BEL_USGS", "other",
-                                   "LWR")))))
-```
-
-
-```{r munge.data}
-cleaned <- raw %>%
-  mutate(flow_cfs = as.factor(flow_cfs)) %>%
-  mutate(high_low = as.factor(high_low)) %>%
-  mutate(notes = as.factor(notes)) %>%
-  mutate(date = mdy(date)) %>%
-  mutate(time = hm(time)) %>%
-  mutate(depth_ft = as.numeric(depth_ft)) %>%
-  mutate(width_ft = as.numeric(width_ft)) %>%
-  mutate(high_low = as.factor(high_low)) %>%
-  mutate(cond = if_else(cond == "error", "NA", cond)) %>%
-  mutate(cond = as.numeric(cond)) %>%
-  mutate(do = if_else(do == "error", "NA", do)) %>%
-  mutate(do = as.numeric(do)) %>%
-  mutate(turb = if_else(turb == "nd", "NA", turb)) %>%
-  mutate(turb = as.numeric(turb)) %>%
-  mutate(nh3 = if_else(nh3 == "nd", "0.025", nh3)) %>%
-  mutate(nh3 = as.numeric(nh3)) %>%
-  mutate(mg = if_else(mg == "nd", "0.5", mg)) %>%
-  mutate(mg = as.numeric(mg)) %>%
-  mutate(alk = as.numeric(alk)) %>%
-  rename(cl = ci) %>%
-  rename(f = fi) %>%
-  rename(so4 = s) %>%
-  mutate(so4 = as.numeric(so4)) %>%
-  mutate(nate = if_else(nate == "nd", "0.05", nate)) %>%
-  mutate(nate = as.numeric(nate)) %>%
-  mutate(op = if_else(op == "nd", "0.005", op)) %>%
-  mutate(op = as.numeric(op)) %>%
-  mutate(tp = if_else(tp == "nd", "0.005", tp)) %>%
-  mutate(tp = as.numeric(tp)) %>%
-  mutate(as = if_else(as == "<0.005", "0.0025", as)) %>%
-  mutate(as = as.numeric(as)) %>%
-  mutate(as = if_else(as < 0.05, 0.025, as)) %>%
-  mutate(cu = if_else(cu == "<0.005", "0.0025", cu)) %>%
-  mutate(cu = as.numeric(cu)) %>%
-  mutate(cu = if_else(cu < 0.05, 0.025, cu)) %>%
-  mutate(pb = if_else(pb == "nd", "<0.005", pb)) %>%
-  mutate(pb = if_else(pb == "<0.005", "0.0025", pb)) %>%
-  mutate(pb = as.numeric(pb)) %>%
-  mutate(pb = if_else(pb < 0.05, 0.025, pb)) %>%
-  mutate(hg = if_else(hg == "nd", "0", hg)) %>%
-  mutate(hg = as.numeric(hg)) %>%
-  mutate(hg = if_else(hg == 0, 0.00005, hg)) %>%
-  mutate(se = if_else(se == "<.002", "0", se)) %>%
-  mutate(se = as.numeric(se)) %>%
-  mutate(se = if_else(se == 0, 0.001, se)) %>%
-  mutate(ag = if_else(ag == "<0.005", "0.0025", ag)) %>%
-  mutate(ag = as.numeric(ag)) %>%
-  mutate(ag = if_else(ag < 0.05, 0.0025, ag))%>%
-  mutate(e_coli = if_else(e_coli == ">2419.6" |
-                            e_coli == ">4839.2" |
-                            e_coli == ">24196.0"|
-                            e_coli == ">9678.4",
-                            "NA",e_coli)) %>%
-  mutate(e_coli = as.numeric(e_coli)) %>%
-  mutate(total_coli = if_else(total_coli == ">2419.6" |
-                            total_coli == ">1419.6" |  
-                            total_coli == ">4839.2" |
-                            total_coli == ">24196.0"|
-                            total_coli == ">4339.2" |  
-                            total_coli == "<241960."|
-                            total_coli == "<4839.2" |  
-                            total_coli == ">9678.4",
-                           "NA",total_coli)) %>%
-  mutate(total_coli = as.numeric(total_coli)) %>%
-  mutate(fecal_coli = as.numeric(fecal_coli)) %>%
-  mutate(bod = if_else(bod == "<12", "12",
-                   if_else(bod == "<2", "2",    
-                       if_else(bod == "<3", "3",
-                           if_else(bod == "<4", "4",
-                               if_else(bod == "<6", "6",    
-                                   if_else(bod == ">3", "3", 
-                                       if_else(bod == "nd", "1", bod
-                                               )))))))) %>%
-  mutate(bod = as.numeric(bod)) %>%
-  mutate(tss = if_else(tss == "nd", "5", tss)) %>%
-  mutate(tss = as.numeric(tss)) %>%
-  mutate(samp_site = as.factor(samp_site)) %>%
-  mutate(subws = factor(subws, levels = c("ChR","WhU","WhW","WhM","WhB","WhP","LWR"))) %>%
-  arrange(subws) %>%
-  mutate(phase = if_else(year > 2004, "Phase II", "Phase I"))%>%
-  mutate(phase = as.factor(phase)) %>%
-  filter(!is.na(year)) %>%
-  mutate(month = month(date)) %>%
-  mutate(fish_life = as.factor(if_else(samp_site =="WCC3" |
-              samp_site == "WOK1" | samp_site == "MER3" |
-                samp_site == "MER4", "Coldwater Marginal",
-                if_else(samp_site =="POR1", "Warmwater Semi-Perm",
-                        "Warmwater Permanant")))) %>%
-  mutate(temp_lim = if_else(fish_life == "Coldwater Marginal", 75,
-                if_else(fish_life =="Warmwater Semi-Perm", 90, 80))) 
-  
-## Warnings:: NAs introduced by coercion: "NA"
-phase2 <- cleaned %>%
-  filter(year > 2007) %>%
-   mutate(year = as.factor(year))
-
-```
 
 # 2.0 Data and Results
 This report focuses on analysis of samples collected for Bear in the Lodge and Pass Creek subwatersheds in 2012 - 2013.  However, data for samples collected between 2008 to 2013 are provided for context for water quality parameters sampled in 2012-2013 and data for samples collected prior to 2008 are provided for water parameters not sampled in 2012-2013.  
