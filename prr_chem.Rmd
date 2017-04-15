@@ -64,35 +64,50 @@ knitr::opts_chunk$set(echo = FALSE)
 This project report, completed for partial credit for a Math 443/543 course by Dr. Kyle Caudle of the South Dakota School of Mines and Technology, utilizes principal componant and discriminant analysis to assign groups and identify possible misclassified items to test a hypothesis that watershed geology can be defined by water quality parameters.  The data are observational data of several water quality parameters.  As only a portion of the stations were sampled in any given year, a special emphasis has been made to fill in missing data so that the underlying structure of the data is not lost.
 
 ```{r library}
-# https://pakillo.github.io/R-GIS-tutorial/
-library(ggmap)       # comes with a nice theme_nothing() function
-library(janitor)     # quick tools for cleaning up var names
-library(broom)       # tidies up output 
-library(lubridate)
-library(gridExtra)
+# Library of packages used or planned to be used in the workflow
+#
+# Prior to running it is probably a good idea to install these packages
+# and update your other packages.
+library(janitor)    # quick tools for cleaning up var names
+library(broom)      # tidies up output 
+library(lubridate)  # makes dealing with dates a little easier
+library(gridExtra)  # misc. functions for "Grid" graphics
+library(modelr)     # functions for modelling that help to
+                    # seamlessly integrate modelling into a pipeline
+                    # of data manipulation and visualisation.
+library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# table packages
+#
 # library(knitr)       # lightweight table package
-# library(xtable)      # God let this one be the table package that works...
-# library(gridExtra)   # miscellaneous functions for "Grid" graphics
-# library(lubridate)   # makes dealing with dates a little easier
-
-
+# library(xtable)      # God let this one be the table package that works
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# spatial data packages
+#
+# library(ggmap)       # comes with a nice theme_nothing() function
 # library(sp)         # classes for spatial data
 # library(raster)     # grids, rasters
 # library(rasterVis)  # raster visualisation
 # library(maptools)   # Tools for Reading and Handling Spatial Objects 
 # library(rgeos)      # Interface to Geometry Engine - Open Source
-
 # library(scales)    # tells ggplot what the proper scale should be
 # library(RgoogleMaps) # Overlays on Static Maps
 # library(rgdal)       # reads in shape files
 # library(tmap)        # thematic map visualization
 # library(Cairo) creates high quality vector and bitmap images
-
-# some other packages that work well and might be useful are:
-# haven,forcats, httr, hms, jsonlite, lubridate, magrittr, 
-# modelr, readxl, stringr, rvest,  xml2
-library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
-
+# https://pakillo.github.io/R-GIS-tutorial/
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# some other packages might be useful are:
+# forcats             # tools for working with factors
+# httr                # tools for working with urls
+# hms                 # works with lubridate for time of day
+# jsonlite            # JSON parser and generator for r
+# stringr             # wrappers for common string operations
+# rvest               # webpage scraper
+# xml2                # parse XML
 ```
 
 ```{r load.data}
@@ -357,6 +372,8 @@ cleaned <- raw %>%
                 if_else(fish_life =="Warmwater Semi-Perm", 90, 80))) %>%
   select(-x52) %>%
   mutate(ecoregion = as.factor(ecoregion)) %>%
+  mutate(k = as.numeric(k)) %>%
+  mutate(month = as.factor(month)) %>%
   select(sort, latitude, longitude, sample_sites, samp_site, subws,
          ecoregion, date, year, month, temp_c, ph, cond, alk, hardness,
          tp, nite, nh3, ca, mg, na, k, cl, f, so4, nate, op, everything())
@@ -375,14 +392,20 @@ input_mass <- cleaned %>%
   select(-fish_life) %>%
   select(-phase) %>%
   select(-do) %>%
-  select(-notes)
+  select(-notes) %>%
+  select(-turb) %>%
+  select(-e_coli) %>%
+  select(-total_coli) %>%
+  select(-fecal_coli) %>%
+  select(-bod) %>%
+  select(-tss)
   
-glimpse(input_mass)
+# glimpse(input_mass)
 
 # Data description 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Using 'cleaned' data
-# 
+# Using 'input_mass' data
+# ~~~~~~~~~~~~~~~~~~~~~~~
 # sort:         uniaue variable showing unique sample id; integer
 # latitude:     decimal latitude; double
 # longitude:    decimal longitude; double
@@ -403,7 +426,13 @@ glimpse(input_mass)
 # ca:           calcium, mg/L, major cation; numeric
 # mg:           magnesium, mg/L, major cation; numeric
 # na:           sodium, mg/L, major cation; numeric
-# k: 
+# k:            potassium, mg/L, major cation; numeric
+# cl:           chloride, mg/L, major anion; numeric
+# f:            floride, mg/L, major anion; numeric
+# so4:          sulfate, mg/L, major anion; numeric
+# nate:         nitrate, mg/L, major anion; numeric
+# op:           orthophosphorus, major anion; numeric
+
 ```
 
 ```{r phase2}
