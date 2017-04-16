@@ -75,11 +75,18 @@ library(gridExtra)  # misc. functions for "Grid" graphics
 library(modelr)     # functions for modelling that help to
                     # seamlessly integrate modelling into a pipeline
                     # of data manipulation and visualisation.
+library(ggthemes)   # Some extra themes, geoms, and scales for 'ggplot2'.
 library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
-#
+library(ggfortify)  # biplots
+library(MVN)        # tests for multivariate normality.  Requires: 'pcaPP', 
+                    #   ‘laeken’, ‘cvTools’, ‘sROC’, ‘VIM’, ‘sgeostat’, 
+                    #   ‘robCompositions’, ‘moments’, ‘mvoutlier’
+library(gridExtra)   # useful for grid.arrange
+library(AID) # Estimation of Box-Cox Power Trans. Parameter
+library(tidyverse) # tidy data manipulation and graphics
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# table packages
-#
+# table packages:
 # library(knitr)       # lightweight table package
 # library(xtable)      # God let this one be the table package that works
 #
@@ -101,6 +108,8 @@ library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
 #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # some other packages might be useful are:
+# GGally              # extends 'ggplot2' functionality
+# ggbiplot            # needs a the github installation 
 # forcats             # tools for working with factors
 # httr                # tools for working with urls
 # hms                 # works with lubridate for time of day
@@ -126,8 +135,8 @@ raw <- raw %>%
   clean_names() %>%
   remove_empty_cols() %>%
   filter(!is.na(sample_sites)) %>% 
-  rename(sort = x_sort) %>%
-  mutate(sample_sites = as.factor(sample_sites))
+  mutate(sample_sites = as.factor(sample_sites)) %>%
+  select(-x52)
 
 # 3) add short names; need to use two steps to avoid an overflow error
 raw1 <- raw %>%
@@ -274,12 +283,12 @@ raw <- raw %>%
                                    "LWR")))))
 ```
 
-```{r munge.data}
+```{r munge.data.cleaner}
 # clean up the loaded raw data by assigning data types, creating
 # consistant NA values, adding censored data as NA, adding additional
 # grouping variables, 
 
-cleaned <- raw %>%
+cleaner <- raw %>%
   mutate(flow_cfs = as.factor(flow_cfs)) %>%
   mutate(high_low = as.factor(high_low)) %>%
   mutate(notes = as.factor(notes)) %>%
@@ -357,12 +366,14 @@ cleaned <- raw %>%
   mutate(tss = if_else(tss == "nd", "5", tss)) %>%
   mutate(tss = as.numeric(tss)) %>%
   mutate(samp_site = as.factor(samp_site)) %>%
-  mutate(subws = factor(subws, levels = c("ChR","WhU","WhW","WhM","WhB","WhP","LWR"))) %>%
+  mutate(subws = factor(subws, levels = 
+                   c("ChR","WhU","WhW","WhM","WhB","WhP","LWR"))) %>%
   arrange(subws) %>%
   mutate(phase = if_else(year > 2004, "Phase II", "Phase I"))%>%
   mutate(phase = as.factor(phase)) %>%
   filter(!is.na(year)) %>%
   mutate(month = month(date)) %>%
+  mutate(month = as.factor(month)) %>%
   mutate(fish_life = as.factor(if_else(samp_site =="WCC3" |
               samp_site == "WOK1" | samp_site == "MER3" |
                 samp_site == "MER4", "Coldwater Marginal",
@@ -370,17 +381,21 @@ cleaned <- raw %>%
                         "Warmwater Permanant")))) %>%
   mutate(temp_lim = if_else(fish_life == "Coldwater Marginal", 75,
                 if_else(fish_life =="Warmwater Semi-Perm", 90, 80))) %>%
-  select(-x52) %>%
   mutate(ecoregion = as.factor(ecoregion)) %>%
   mutate(k = as.numeric(k)) %>%
-  mutate(month = as.factor(month)) %>%
+  mutate(year = as.factor(year)) %>%
   select(sort, latitude, longitude, sample_sites, samp_site, subws,
          ecoregion, date, year, month, temp_c, ph, cond, alk, hardness,
          tp, nite, nh3, ca, mg, na, k, cl, f, so4, nate, op, everything())
   
 ## Warnings:: NAs introduced by coercion: "NA" - need to find and fix
+```
 
-input_mass <- cleaned %>%
+```{r munge.data.input_mass}
+# The input_mass is subsetted from the cleaned raw data.  Input mass
+# does not have values 
+
+clean <- cleaner %>%
   select(-flow_cfs) %>%
   select(-high_low) %>%
   select(-time) %>%
@@ -400,12 +415,8 @@ input_mass <- cleaned %>%
   select(-bod) %>%
   select(-tss)
   
-# glimpse(input_mass)
-
-# Data description 
+# Data description 'clean' data
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Using 'input_mass' data
-# ~~~~~~~~~~~~~~~~~~~~~~~
 # sort:         uniaue variable showing unique sample id; integer
 # latitude:     decimal latitude; double
 # longitude:    decimal longitude; double
@@ -432,8 +443,47 @@ input_mass <- cleaned %>%
 # so4:          sulfate, mg/L, major anion; numeric
 # nate:         nitrate, mg/L, major anion; numeric
 # op:           orthophosphorus, major anion; numeric
+# the rest of the vars are trace metals
+```
+
+
+
+
+
+```{r validate.variables}
+#glimpse(input_mass)
+# in validating variables I am using the largest factor group, ecoregion
+p1 <- ggplot(clean, aes(year, ph)) +
+  geom_boxplot() +
+  theme_tufte() +
+  ggtitle("Exploratory pH Boxplot")
+p1
+
+clean <- clean %>%
+  
+
+p2 <- ggplot(input, aes(ecoregion, ph)) +
+  geom_boxplot() +
+  theme_tufte() +
+  ggtitle("Exploratory Boxplots of Wine Variables")
 
 ```
+
+The expected value of pH is between 7.6 - 9.2.  There is not a compelling reason for pH to be either above or below these values.  
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
 
 ```{r phase2}
 # This is for a water resources report report
