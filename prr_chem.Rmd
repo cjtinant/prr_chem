@@ -125,7 +125,7 @@ library(tidyverse) # tidy data manipulation and graphics
 # standardize names, remove empty colums and rows, and add grouping 
 # variables.
 #
-# 1) load data
+# 1) load data TEST
 raw <- read_csv("~/Google Drive/R-files-consolidated/BearLodge/Data/Chemistry-1993-2013_17Mar21.csv", 
     col_types = cols(Hg = col_character()))
 
