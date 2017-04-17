@@ -23,7 +23,6 @@ knitr::opts_chunk$set(echo = FALSE)
 #              through an literate programming, such as Sweave or R 
 #              Markdown.
 #
-#
 # Project Assignment
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Project 2: Find a different data set on the internet that lends
