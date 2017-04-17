@@ -63,7 +63,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Overview
 This project report, completed for partial credit for a Math 443/543 course by Dr. Kyle Caudle of the South Dakota School of Mines and Technology, utilizes principal componant and discriminant analysis to assign groups and identify possible misclassified items to test a hypothesis that watershed geology can be defined by water quality parameters.  The data are observational data of several water quality parameters.  As only a portion of the stations were sampled in any given year, a special emphasis has been made to fill in missing data so that the underlying structure of the data is not lost.
 
-```{r library}
+```{r library, echo = FALSE}
 # Library of packages used or planned to be used in the workflow
 #
 # Prior to running it is probably a good idea to install these packages
@@ -119,7 +119,7 @@ library(tidyverse) # tidy data manipulation and graphics
 # xml2                # parse XML
 ```
 
-```{r load.data}
+```{r load.data, echo = FALSE}
 # The original xlsx file "Chemistry-1993-2013_17Mar21" was converted
 # to a csv.using Excel.  The remainder of this chunk is to clean and
 # standardize names, remove empty colums and rows, and add grouping 
@@ -391,9 +391,8 @@ cleaner <- raw %>%
 ## Warnings:: NAs introduced by coercion: "NA" - need to find and fix
 ```
 
-```{r munge.data.input_mass}
-# The input_mass is subsetted from the cleaned raw data.  Input mass
-# does not have values 
+```{r munge.data.clean}
+# 'Clean' is subsetted from the cleaner raw data.  
 
 clean <- cleaner %>%
   select(-flow_cfs) %>%
@@ -448,24 +447,419 @@ clean <- cleaner %>%
 
 
 
-
-
 ```{r validate.variables}
-#glimpse(input_mass)
-# in validating variables I am using the largest factor group, ecoregion
+# One of the challenges with field variables is that instruments were
+# not always calculated by technicians.  For this reason pH has a wide
+# spread.  
+#
+# ph
+summary(clean$ph)
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+#  0.000   8.020   8.340   8.308   8.650  12.800     304 
+
+# group by year and summarize conduct
+by_year_ph <- clean %>%
+  filter(ph != is.na(ph)) %>%
+  group_by(year) %>%
+  summarize(mean(ph))
+
+summary(by_year_ph)
+
+# mean(ph_year)    
+# Min.   :7.682  
+# 1st Qu.:8.051  
+# Median :8.211  
+# Mean   :8.281  
+# 3rd Qu.:8.407  
+# Max.   :9.406  - this is 1996
+
+# Remove 1996 from samples
+
+clean <- clean %>%
+  mutate(ph = ifelse(year == 1996, NA, ph))
+  
+summary(clean$ph)
+
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+#  0.000   8.010   8.290   8.195   8.560   9.990     380 
+
+# group by ecoregion and summarize conduct
+by_ecoreg_ph <- clean %>%
+  filter(ph != is.na(ph)) %>%
+  group_by(ecoregion) %>%
+  summarize(mean(ph))
+
+# ecoregion mean(ph)
+# BadLand 8.491772
+# CheyRiv 8.285806
+# LWR     8.204815
+# TabLand 8.105766
+
+by_site_ph <- clean %>%
+  filter(ph != is.na(ph)) %>%
+  group_by(samp_site) %>%
+  summarize(mean(ph))
+
+# pH of between 8 - 9 seems reasonable
+
+clean <- clean %>%
+  mutate(ph = replace(ph, ph < 8, NA)) %>%
+  mutate(ph = replace(ph, ph > 9, NA)) 
+
+summary(clean$ph)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+#  8.000   8.210   8.400   8.406   8.570   9.000     603 
+
+rm(by_site_ph, by_year_ph, by_ecoreg_ph)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# conductivity
+#
+summary(clean$cond)
+
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+#    0.0   363.7   482.8   465.0   602.2  1000.0     322 
+
+# group by year and summarize conduct
+by_year_cond <- clean %>%
+  filter(cond != is.na(cond)) %>%
+  group_by(year) %>%
+  summarize(mean(cond))
+
+summary(by_year_cond)
+
+# mean(cond)   
+# Min.   :181.1  
+# 1st Qu.:442.8  
+# Median :483.5  
+# Mean   :472.8  
+# 3rd Qu.:543.6  
+# Max.   :614.2  
+
+# group by ecoregion and summarize conduct
+by_ecoreg_cond <- clean %>%
+  filter(cond != is.na(cond)) %>%
+  group_by(ecoregion) %>%
+  summarize(mean(cond))
+
+# ecoregion mean(cond)
+# BadLand   518.6427
+# CheyRiv   349.0191
+# LWR       349.7756
+# TabLand   476.2714
+
+by_site_cond <- clean %>%
+  filter(cond != is.na(cond)) %>%
+  group_by(samp_site) %>%
+  summarize(mean(cond))
+
+# Remove conductivity < 200 from samples
+
+clean <- clean %>%
+  mutate(cond = replace(cond, cond < 200, NA))
+
+summary(clean$cond)
+
+# Min.   1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+# 209.0   410.4   508.0   519.0   613.0  1000.0     418 
+
+rm(by_site_cond, by_year_cond, by_ecoreg_cond)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# alkalinity - measured by lab.  However, there is a chance for
+# transcription errors
+
+summary(clean$alk)
+
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+# 0.0   205.8   232.0   242.1   283.0   580.0     565 
+
+# group by years and summarize pH
+by_year_alk <- clean %>%
+  filter(alk != is.na(alk)) %>%
+  group_by(year) %>%
+  summarize(mean(alk))
+
+summary(by_year_alk)
+
+#  year- mean(alk)    
+#  Min.    191.7  
+#  1st Qu. 238.3  
+#  Median  244.7  
+#  Mean    236.9  
+#  3rd Qu. 247.2  
+#  Max.    264.3  
+               
+# group by ecorgion and summarize alk
+by_ecoreg_alk <- clean %>%
+  filter(alk != is.na(alk)) %>%
+  group_by(ecoregion) %>%
+  summarize(mean(alk))
+
+# Ecoreg  mean(alk)
+# BadLand 271.2435
+# CheyRiv 180.2632
+# LWR     162.3253
+# TabLand 256.8042
+
+# group by site and summarize alk
+by_site_alk <- clean %>%
+  filter(alk != is.na(alk)) %>%
+  group_by(samp_site) %>%
+  summarize(mean(alk))
+ 
+# Ranked mean alk by site
+# LWR3 137.4000
+# LWR1 142.4167
+# LWR4 151.5385
+# LWR2 157.4286
+# WOK1 160.1250
+# CHR2 178.6667
+# CHR1 181.0000
+# WOK2 183.2000
+# BLP1 191.0000
+# BEA1 199.4167
+# WOL1 203.0000
+# WCC2 208.7857
+# POR1 213.9444
+# WOK3 218.6667
+# MER1 223.3846
+# PAS1 226.0909
+# BEA2 228.1538
+# LON1 228.8000
+# AMH1 229.0000
+# WCC1 232.3750
+# WHR2 237.7143
+# WOK4 240.5000
+# NFL1 242.7692
+# BEA3 242.9000
+# WHR1 244.7500
+# WHR4 246.3636
+# COR1 248.3636
+# BEL2 253.2000
+# BEL1 264.7000
+# MER3 271.6667
+# WHR3 272.6154
+# CRA1 278.4286
+# MER2 280.6250
+# EAN2 280.9286
+# BLP2 285.5000
+# POR2 286.9286
+# POR3 290.3750
+# LOD1 290.7000
+# PAS2 296.8889
+# PAS3 299.3077
+# WCC3 300.2857
+# EAN1 302.7500
+# LCC1 310.4286
+# BUZ1 349.2500
+# POT1 376.2500
+# RED1 388.3636
+
+# group by month and summarize alk
+by_month_alk <- clean %>%
+  filter(alk != is.na(alk)) %>%
+  group_by(month) %>%
+  summarize(mean(alk))
+
+# mon mean(alk)
+# 1   260.4000
+# 5   224.5938
+# 6   257.0517
+# 7   232.3529
+# 8   231.7600
+# 9   224.8571
+# 10  247.7097
+# 11  219.5455
+# 12  271.5000
+#NA   241.3594
+
+# LWR3 has a low average alk of 137, no large changes between months,
+# although some years seem smaller ~190
+# Still some very suspect low values.  Use the lowest ecoregion and 
+# Tukey's 1.5 IQR rule to remove suspect values
+
+lwr_alk <- clean %>%
+  filter(ecoregion == "LWR") %>%
+  select(alk)
+
+summary(lwr_alk) # IQR = 68; 1.5 x 68 = 102; M - 1.5 IQR = 62
+
+clean <- clean %>%
+  mutate(alk = replace(alk, alk > 62, NA))
+
+rm(by_ecoreg_alk, by_month_alk, by_site_alk, by_year_alk, lwr_alk)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# hardness - this is the combined Mg + Ca + Fe as CaCO3
+
+summary(clean$hardness)
+
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+#  15.0   100.0   150.0   173.3   170.0  1100.0     629 
+
+# group by years and summarize hardness
+by_year_hard <- clean %>%
+  filter(hardness != is.na(alk)) %>%
+  group_by(year) %>%
+  summarize(mean(hardness))
+
+summary(by_year_hard)
+
+#  year   mean(hardness) 
+#  Min.   :112.7  
+#  1st Qu.:119.0  
+#  Median :129.0  
+#  Mean   :162.4  
+#  3rd Qu.:176.7  
+#  Max.   :280.0  
+               
+# group by ecorgion and summarize hardness
+by_ecoreg_hard <- clean %>%
+  filter(hardness != is.na(hardness)) %>%
+  group_by(ecoregion) %>%
+  summarize(mean(hardness))
+
+# ecoregion mean(hardness)
+# BadLand   118.4175
+# CheyRiv   965.9091
+# LWR       132.0476
+# other     175.7143
+# TabLand   141.6824
+
+
+# group by site and summarize hardness
+by_site_hard <- clean %>%
+  filter(hardness != is.na(hardness)) %>%
+  group_by(samp_site) %>%
+  summarize(mean(hardness))
+ 
+# Ranked mean alk by site
+# site  mean(hardness)
+# WHR5  41.36364
+# POT1  56.04762
+# EAN2  63.22222
+# WHR4  69.53846
+# RED1  72.87500
+# EAN1  81.38462
+# LWR1  84.80000
+# BEL2  88.20000
+# LON1  94.61538
+# LWR2  102.40000
+# PAS3  102.58333
+# CRA1  103.94118
+# LWR4  104.60000
+# WHR3  112.20000
+# POR3  114.81818
+# PAS2  117.28571
+# BEL1  122.23529
+# LWR3  126.60000
+# LOD1  129.90909
+# WOK1  132.18182
+# BEA3  142.82353
+# MER4  145.71429
+# BEA1  147.00000
+# BEA2  151.82353
+# MER3  154.00000
+# PAS1  156.87500
+# NFL1  158.33333
+# BLP1  158.75000
+# WOK4  160.22222
+# COR1  162.57143
+# WOK2  165.00000
+# POR1  167.53846
+# POR_Lagoon 170.00000
+# AMH1  173.33333
+# WCC2  177.27273
+# MER1  178.57143
+# POR2  179.54545
+# WOK_Lagoon 180.00000
+# WOL1  181.81818
+# WOK3  183.18182
+# BUZ1  191.11111
+# WCC_Lagoon  200.00000
+# WHR1  204.50000
+# WCC1  206.36364
+# WCC3  225.55556
+# WHR2  262.85714
+# CHR2  964.54545
+# CHR1  967.27273
+
+# group by month and summarize hardness
+by_month_hard <- clean %>%
+  filter(hardness != is.na(hardness)) %>%
+  group_by(month) %>%
+  summarize(mean(hardness))
+
+# month mean(hardness)
+# 4     148.3077
+# 5     188.4565
+# 6     169.1748
+# 7     168.7528
+# 8     177.8400
+# 9     169.7237
+# 10    170.1190
+# 11    93.0000
+
+
+# There seems to be some interactions with hardness in time and space.
+# Given the number of sites with very low hardness right around the cutoff
+# I think these low values are real.
+
+whr5_hard <- clean %>%
+  filter(samp_site == "WHR5") %>%
+  select(hardness)
+
+summary(whb_hard) # IQR = 67.5; 1.5 x 68 = 101.3; M - 1.5 IQR = 25.7
+
+
+
+
 p1 <- ggplot(clean, aes(year, ph)) +
   geom_boxplot() +
   theme_tufte() +
-  ggtitle("Exploratory pH Boxplot")
+  ggtitle("Exploratory boxplot of pH")
 p1
 
-clean <- clean %>%
-  
+
 
 p2 <- ggplot(input, aes(ecoregion, ph)) +
   geom_boxplot() +
   theme_tufte() +
   ggtitle("Exploratory Boxplots of Wine Variables")
+
+# group by years and summarize pH
+by_year_ph <- clean %>%
+  filter(ph != is.na(ph)) %>%
+  group_by(year) %>%
+  summarize(mean(ph))
+
+summary(by_year_ph)
+
+# mean(ph_by_year)    
+# Min.   :7.682  
+# 1st Qu.:7.907  
+# Median :8.142  
+# Mean   :8.095  
+# 3rd Qu.:8.264  
+# Max.   :8.450  
+
+# sequentially remove very different pH from sample
+# remove the pH values for 1996 based on its mean of 9.4.
+
+
+
+summary(clean$ph)
+
+# Min. 1st Qu.  Median    Mean   3rd Qu.    Max.    NA's 
+#  0.000   8.010   8.290   8.195   8.560   9.990    380 
+
+clean <- clean %>%
+  mutate(ph = replace(ph, ph > 8.8, NA)) %>%
+  mutate(ph = replace(ph, ph < 7.8, NA))
+
+summary(clean$ph)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+# 7.80    8.08    8.29    8.29    8.48    8.80     558 
+
 
 ```
 
