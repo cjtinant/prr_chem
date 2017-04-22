@@ -1420,7 +1420,7 @@ by_year_k <- clean %>%
 by_ecoreg_k <- clean %>%
   filter(k != is.na(k)) %>%
   group_by(ecoregion) %>%
-  summarize(mean(k))
+  summarize(k_avg = mean(k))
 
 # ecoregion mean(k)
 # BadLand 12.958333
@@ -1446,8 +1446,7 @@ by_site_k <- clean %>%
   summarize(mean(k))
  
 # samp_site mean(k)
-samp_site
-mean(k)
+# samp_site mean(k)
 # CHR1 13666667
 # CHR2 13.500000
 # POR1 10.666667
@@ -1900,7 +1899,7 @@ rm(by_ecoreg_op, by_month_op, by_site_op, by_year_op)
 # an ecoregion.
 
 input = left_join(clean, by_ecoreg_k) 
-rm(by_ecoreg_k)
+# rm(by_ecoreg_k)
 
 # the "other" stations are downstream from lift stations and can be
 # removed; remove metals data ; change major anions and cations; 
@@ -1908,7 +1907,7 @@ rm(by_ecoreg_k)
 # mw HPO4 = 1+31+4*16 mg/mmol
 
 
-input <- clean %>%
+input <- input %>%
   filter(ecoregion != "other") %>%
   select(-as)%>%
   select(-ba)%>%
@@ -1923,6 +1922,7 @@ input <- clean %>%
   select(-se)%>%
   select(-ag)%>%
   select(-zn) %>%
+  
   mutate(ca_meq = round(2*ca/40, digits = 2)) %>%
   mutate(mg_meq = round(2*mg/24.3, digits = 2)) %>%
   mutate(na_meq = round(na/23, digits = 2)) %>%
@@ -1936,6 +1936,7 @@ input <- clean %>%
   mutate(so4_meq = round(so4/96, digits = 2)) %>%
   mutate(tp_meq = round(tp/96, digits = 2)) %>%
   mutate(hco3_meq = round(alk/100, digits = 2)) %>%
+  mutate(k_meq = if_else(is.na(k_meq), k_avg, k_meq)) %>%
   
   select(sort, latitude, longitude, samp_site, subws, ecoregion, 
          year, month, temp_c, ph, cond, hardness, ca_meq, mg_meq,
@@ -1943,7 +1944,6 @@ input <- clean %>%
          op_meq, tp_meq, hco3_meq) %>%
   mutate(cations = ca_meq + mg_meq + k_meq + na_meq) 
 
-  mutate(anions = )
 ```
 
 
