@@ -462,10 +462,10 @@ clean <- cleaner %>%
 #  0.000   8.020   8.340   8.308   8.650  12.800     304 
 
 # group by year and summarize conduct
-by_year_ph <- clean %>%
-  filter(ph != is.na(ph)) %>%
-  group_by(year) %>%
-  summarize(mean(ph))
+# by_year_ph <- clean %>%
+#  filter(ph != is.na(ph)) %>%
+#  group_by(year) %>%
+#  summarize(mean(ph))
 
 # summary(by_year_ph)
 
@@ -488,10 +488,10 @@ clean <- clean %>%
 #  0.000   8.010   8.290   8.195   8.560   9.990     380 
 
 # group by ecoregion and summarize conduct
-by_ecoreg_ph <- clean %>%
-  filter(ph != is.na(ph)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(ph))
+# by_ecoreg_ph <- clean %>%
+#  filter(ph != is.na(ph)) %>%
+#  group_by(ecoregion) %>%
+#  summarize(mean(ph))
 
 # ecoregion mean(ph)
 # BadLand 8.491772
@@ -499,10 +499,10 @@ by_ecoreg_ph <- clean %>%
 # LWR     8.204815
 # TabLand 8.105766
 
-by_site_ph <- clean %>%
-  filter(ph != is.na(ph)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(ph))
+# by_site_ph <- clean %>%
+#   filter(ph != is.na(ph)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(ph))
 
 # pH of between 8 - 9 seems reasonable
 
@@ -514,7 +514,7 @@ clean <- clean %>%
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #  8.000   8.210   8.400   8.406   8.570   9.000     603 
 
-rm(by_site_ph, by_year_ph, by_ecoreg_ph)
+#rm(by_site_ph, by_year_ph, by_ecoreg_ph)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # conductivity
 #
@@ -524,10 +524,10 @@ rm(by_site_ph, by_year_ph, by_ecoreg_ph)
 #    0.0   363.7   482.8   465.0   602.2  1000.0     322 
 
 # group by year and summarize conduct
-by_year_cond <- clean %>%
-  filter(cond != is.na(cond)) %>%
-  group_by(year) %>%
-  summarize(mean(cond))
+# by_year_cond <- clean %>%
+#   filter(cond != is.na(cond)) %>%
+#   group_by(year) %>%
+#   summarize(mean(cond))
 
 # summary(by_year_cond)
 
@@ -540,10 +540,10 @@ by_year_cond <- clean %>%
 # Max.   :614.2  
 
 # group by ecoregion and summarize conduct
-by_ecoreg_cond <- clean %>%
-  filter(cond != is.na(cond)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(cond))
+# by_ecoreg_cond <- clean %>%
+#   filter(cond != is.na(cond)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(cond))
 
 # ecoregion mean(cond)
 # BadLand   518.6427
@@ -551,22 +551,22 @@ by_ecoreg_cond <- clean %>%
 # LWR       349.7756
 # TabLand   476.2714
 
-by_site_cond <- clean %>%
-  filter(cond != is.na(cond)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(cond))
+# by_site_cond <- clean %>%
+#   filter(cond != is.na(cond)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(cond))
 
 # Remove conductivity < 200 from samples
 
-clean <- clean %>%
-  mutate(cond = replace(cond, cond < 200, NA))
+# clean <- clean %>%
+#  mutate(cond = replace(cond, cond < 200, NA))
 
 # summary(clean$cond)
 
 # Min.   1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 # 209.0   410.4   508.0   519.0   613.0  1000.0     418 
 
-rm(by_site_cond, by_year_cond, by_ecoreg_cond)
+# rm(by_site_cond, by_year_cond, by_ecoreg_cond)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # alkalinity - measured by lab.  However, there is a chance for
@@ -578,10 +578,10 @@ rm(by_site_cond, by_year_cond, by_ecoreg_cond)
 # 0.0   205.8   232.0   242.1   283.0   580.0     565 
 
 # group by years and summarize pH
-by_year_alk <- clean %>%
-  filter(alk != is.na(alk)) %>%
-  group_by(year) %>%
-  summarize(mean(alk))
+# by_year_alk <- clean %>%
+#   filter(alk != is.na(alk)) %>%
+#   group_by(year) %>%
+#   summarize(mean(alk))
 
 # summary(by_year_alk)
 
@@ -594,10 +594,10 @@ by_year_alk <- clean %>%
 #  Max.    264.3  
                
 # group by ecorgion and summarize alk
-by_ecoreg_alk <- clean %>%
-  filter(alk != is.na(alk)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(alk))
+# by_ecoreg_alk <- clean %>%
+#   filter(alk != is.na(alk)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(alk))
 
 # Ecoreg  mean(alk)
 # BadLand 271.2435
@@ -606,10 +606,10 @@ by_ecoreg_alk <- clean %>%
 # TabLand 256.8042
 
 # group by site and summarize alk
-by_site_alk <- clean %>%
-  filter(alk != is.na(alk)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(alk))
+# by_site_alk <- clean %>%
+#   filter(alk != is.na(alk)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(alk))
  
 # Ranked mean alk by site
 # LWR3 137.4000
@@ -660,10 +660,10 @@ by_site_alk <- clean %>%
 # RED1 388.3636
 
 # group by month and summarize alk
-by_month_alk <- clean %>%
-  filter(alk != is.na(alk)) %>%
-  group_by(month) %>%
-  summarize(mean(alk))
+# by_month_alk <- clean %>%
+#   filter(alk != is.na(alk)) %>%
+#   group_by(month) %>%
+#   summarize(mean(alk))
 
 # mon mean(alk)
 # 1   260.4000
@@ -682,16 +682,16 @@ by_month_alk <- clean %>%
 # Still some very suspect low values.  Use the lowest ecoregion and 
 # Tukey's 1.5 IQR rule to remove suspect values
 
-lwr_alk <- clean %>%
-  filter(ecoregion == "LWR") %>%
-  select(alk)
+# lwr_alk <- clean %>%
+#   filter(ecoregion == "LWR") %>%
+#   select(alk)
 
 # summary(lwr_alk) # IQR = 68; 1.5 x 68 = 102; M - 1.5 IQR = 62
 
-clean <- clean %>%
-  mutate(alk = replace(alk, alk > 62, NA))
+# clean <- clean %>%
+#   mutate(alk = replace(alk, alk > 62, NA))
 
-rm(by_ecoreg_alk, by_month_alk, by_site_alk, by_year_alk, lwr_alk)
+# rm(by_ecoreg_alk, by_month_alk, by_site_alk, by_year_alk, lwr_alk)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # hardness - this is the combined Mg + Ca + Fe as CaCO3
 
@@ -701,10 +701,10 @@ rm(by_ecoreg_alk, by_month_alk, by_site_alk, by_year_alk, lwr_alk)
 #  15.0   100.0   150.0   173.3   170.0  1100.0     629 
 
 # group by years and summarize hardness
-by_year_hard <- clean %>%
-  filter(hardness != is.na(alk)) %>%
-  group_by(year) %>%
-  summarize(mean(hardness))
+# by_year_hard <- clean %>%
+#   filter(hardness != is.na(alk)) %>%
+#   group_by(year) %>%
+#   summarize(mean(hardness))
 
 # summary(by_year_hard)
 
@@ -717,10 +717,10 @@ by_year_hard <- clean %>%
 #  Max.   :280.0  
                
 # group by ecorgion and summarize hardness
-by_ecoreg_hard <- clean %>%
-  filter(hardness != is.na(hardness)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(hardness))
+# by_ecoreg_hard <- clean %>%
+#   filter(hardness != is.na(hardness)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(hardness))
 
 # ecoregion mean(hardness)
 # BadLand   118.4175
@@ -731,10 +731,10 @@ by_ecoreg_hard <- clean %>%
 
 
 # group by site and summarize hardness
-by_site_hard <- clean %>%
-  filter(hardness != is.na(hardness)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(hardness))
+# by_site_hard <- clean %>%
+#   filter(hardness != is.na(hardness)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(hardness))
  
 # Ranked mean alk by site
 # site  mean(hardness)
@@ -788,10 +788,10 @@ by_site_hard <- clean %>%
 # CHR1  967.27273
 
 # group by month and summarize hardness
-by_month_hard <- clean %>%
-  filter(hardness != is.na(hardness)) %>%
-  group_by(month) %>%
-  summarize(mean(hardness))
+# by_month_hard <- clean %>%
+#   filter(hardness != is.na(hardness)) %>%
+#   group_by(month) %>%
+#   summarize(mean(hardness))
 
 # month mean(hardness)
 # 4     148.3077
@@ -806,7 +806,8 @@ by_month_hard <- clean %>%
 # There seems to be some interactions with hardness in time and space.
 # Given the number of sites with very low hardness right around the cutoff
 # I think these low values are real.
-rm(by_ecoreg_hard, by_site_hard, by_year_hard, by_month_hard)
+
+# rm(by_ecoreg_hard, by_site_hard, by_year_hard, by_month_hard)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # tp - total phosphorus is the dissolved phos + particulate phos
 # we have recorded some very large values of TP during rainfall events
@@ -817,10 +818,10 @@ rm(by_ecoreg_hard, by_site_hard, by_year_hard, by_month_hard)
 
 # group by years and summarize pH
 
-by_year_tp <- clean %>%
-  filter(tp != is.na(tp)) %>%
-  group_by(year) %>%
-  summarize(mean(tp))
+# by_year_tp <- clean %>%
+#   filter(tp != is.na(tp)) %>%
+#   group_by(year) %>%
+#   summarize(mean(tp))
 
 # summary(by_year_tp)
 # year       mean(tp)     
@@ -832,10 +833,10 @@ by_year_tp <- clean %>%
 #  Max.   :3.7212  - this is 2006
 
 # group by ecorgion and summarize tp
-by_ecoreg_tp <- clean %>%
-  filter(tp != is.na(tp)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(tp))
+# by_ecoreg_tp <- clean %>%
+#   filter(tp != is.na(tp)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(tp))
 
 # Ecoreg  mean(tp)
 # BadLand 1.5743659 - this makes sense; big flushing flows
@@ -844,10 +845,10 @@ by_ecoreg_tp <- clean %>%
 # TabLand 0.2154746
 
 # group by site and summarize tp
-by_site_tp <- clean %>%
-  filter(tp != is.na(tp)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(tp))
+# by_site_tp <- clean %>%
+#   filter(tp != is.na(tp)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(tp))
  
 # Ranked mean tp by site
 # samp_site mean(tp)
@@ -901,10 +902,10 @@ by_site_tp <- clean %>%
 # WOL1 0.1062759 
 
 # group by month and summarize tp
-by_month_tp <- clean %>%
-  filter(tp != is.na(tp)) %>%
-  group_by(month) %>%
-  summarize(mean(tp))
+# by_month_tp <- clean %>%
+#   filter(tp != is.na(tp)) %>%
+#   group_by(month) %>%
+#   summarize(mean(tp))
 
 # mon mean(tp)
 # 1  0.1260000
@@ -921,7 +922,7 @@ by_month_tp <- clean %>%
 
 # I don't see a compelling reason to remove any values. from tp
 
-rm(by_ecoreg_tp, by_month_tp, by_site_tp, by_year_tp)
+# rm(by_ecoreg_tp, by_month_tp, by_site_tp, by_year_tp)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # nh3 - ammonia this quickly moves to NO2 then NO3.
@@ -937,10 +938,10 @@ rm(by_ecoreg_tp, by_month_tp, by_site_tp, by_year_tp)
 
 # summary(clean$nite) # might potentially want to keep in analysis
 
-by_year_nite <- clean %>%
-  filter(nite != is.na(nite)) %>%
-  group_by(year) %>%
-  summarize(mean(nite))
+# by_year_nite <- clean %>%
+#   filter(nite != is.na(nite)) %>%
+#   group_by(year) %>%
+#   summarize(mean(nite))
 
 # summary(by_year_nite)
 # year       mean(nite)     
@@ -957,10 +958,10 @@ by_year_nite <- clean %>%
 # overall this may indicate an increasing trend in nutrient use
 
 # group by ecorgion and summarize nite
-by_ecoreg_nite <- clean %>%
-  filter(nite != is.na(nite)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(nite))
+# by_ecoreg_nite <- clean %>%
+#   filter(nite != is.na(nite)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(nite))
 
 # Ecoreg  mean(nite)
 # BadLand 0.3392500
@@ -969,10 +970,10 @@ by_ecoreg_nite <- clean %>%
 # TabLand 0.3103611
 
 # group by site and summarize nite
-by_site_nite <- clean %>%
-  filter(nite != is.na(nite)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(nite))
+# by_site_nite <- clean %>%
+#   filter(nite != is.na(nite)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(nite))
  
 # Ranked mean nite by site
 # samp_site mean(nite)
@@ -1021,10 +1022,10 @@ by_site_nite <- clean %>%
 # WOL1 0.1566667
 
 # group by month and summarize nite
-by_month_nite <- clean %>%
-  filter(nite != is.na(nite)) %>%
-  group_by(month) %>%
-  summarize(mean(nite))
+# by_month_nite <- clean %>%
+#   filter(nite != is.na(nite)) %>%
+#   group_by(month) %>%
+#   summarize(mean(nite))
 
 # mon mean(nite)
 # 1 0.6765000
@@ -1038,7 +1039,7 @@ by_month_nite <- clean %>%
 # 12 0.2762222
 
 # not sure how to use these values...
-rm(by_ecoreg_nite, by_month_nite, by_site_nite, by_year_nite)
+# rm(by_ecoreg_nite, by_month_nite, by_site_nite, by_year_nite)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ca - this is a key variable - we might be able to use hardness ratio
@@ -1049,10 +1050,10 @@ rm(by_ecoreg_nite, by_month_nite, by_site_nite, by_year_nite)
 #   4.00   37.00   48.00   54.39   56.00  302.00     629 
 # the 302 value seems to be odd.
 
-by_year_ca <- clean %>%
-  filter(ca != is.na(ca)) %>%
-  group_by(year) %>%
-  summarize(mean(ca))
+# by_year_ca <- clean %>%
+#   filter(ca != is.na(ca)) %>%
+#   group_by(year) %>%
+#   summarize(mean(ca))
 
 # summary(by_year_ca)
 # year       mean(ca)     
@@ -1066,10 +1067,10 @@ by_year_ca <- clean %>%
 # 2013 37.06977
 
 # group by ecorgion and summarize ca
-by_ecoreg_ca <- clean %>%
-  filter(ca != is.na(ca)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(ca))
+# by_ecoreg_ca <- clean %>%
+#   filter(ca != is.na(ca)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(ca))
 
 # Ecoreg  mean(ca)
 # BadLand 37.21942
@@ -1079,10 +1080,10 @@ by_ecoreg_ca <- clean %>%
 # TabLand 47.25157
 
 # group by site and summarize ca
-by_site_ca <- clean %>%
-  filter(ca != is.na(ca)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(ca))
+# by_site_ca <- clean %>%
+#   filter(ca != is.na(ca)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(ca))
  
 # Ranked mean ca by site
 # samp_site mean(ca)
@@ -1136,10 +1137,10 @@ by_site_ca <- clean %>%
 # WOL1 60.3636
 
 # group by month and summarize ca
-by_month_ca <- clean %>%
-  filter(ca != is.na(ca)) %>%
-  group_by(month) %>%
-  summarize(mean(ca))
+# by_month_ca <- clean %>%
+#   filter(ca != is.na(ca)) %>%
+#   group_by(month) %>%
+#   summarize(mean(ca))
 
 # mon mean(ca)
 # 4  49.84615
@@ -1150,7 +1151,8 @@ by_month_ca <- clean %>%
 # 9  52.55263
 # 10 54.30952
 # 11 32.00000
-rm(by_ecoreg_ca, by_month_ca, by_site_ca, by_year_ca)
+
+# rm(by_ecoreg_ca, by_month_ca, by_site_ca, by_year_ca)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # mg - this is a key variable - we might be able to use hardness ratio
 
@@ -1159,10 +1161,10 @@ rm(by_ecoreg_ca, by_month_ca, by_site_ca, by_year_ca)
 #   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #  0.500   3.000   6.000   9.125   8.000  98.000     629 
 
-by_year_mg <- clean %>%
-  filter(mg != is.na(mg)) %>%
-  group_by(year) %>%
-  summarize(mean(mg))
+# by_year_mg <- clean %>%
+#   filter(mg != is.na(mg)) %>%
+#   group_by(year) %>%
+#   summarize(mean(mg))
 
 # summary(by_year_mg)
 # year mean(mg) - follows a similar pattern as mg
@@ -1177,10 +1179,10 @@ by_year_mg <- clean %>%
 # 2013 4.906977
 
 # group by ecorgion and summarize mg
-by_ecoreg_mg <- clean %>%
-  filter(mg != is.na(mg)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(mg))
+# by_ecoreg_mg <- clean %>%
+#   filter(mg != is.na(mg)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(mg))
 
 # ecoregion mean(mg)
 # BadLand 6.220388
@@ -1190,10 +1192,10 @@ by_ecoreg_mg <- clean %>%
 # TabLand 5.759780
 
 # group by site and summarize mg
-by_site_mg <- clean %>%
-  filter(mg != is.na(mg)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(mg))
+# by_site_mg <- clean %>%
+#   filter(mg != is.na(mg)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(mg))
  
 # samp_site mean(mg)
 # AMH1 6.3333333
@@ -1246,10 +1248,10 @@ by_site_mg <- clean %>%
 # WOL1 7.6363636
 
 # group by month and summarize mg
-by_month_mg <- clean %>%
-  filter(mg != is.na(mg)) %>%
-  group_by(month) %>%
-  summarize(mean(mg))
+# by_month_mg <- clean %>%
+#   filter(mg != is.na(mg)) %>%
+#   group_by(month) %>%
+#   summarize(mean(mg))
 
 # mon mean(mg)
 # 4  5.846154 - low; temperature limit?
@@ -1262,7 +1264,7 @@ by_month_mg <- clean %>%
 # 11 4.000000 - low; temperature limit?
 # NA 0.510000
 
-rm(by_ecoreg_mg, by_month_mg, by_site_mg, by_year_mg)
+# rm(by_ecoreg_mg, by_month_mg, by_site_mg, by_year_mg)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # na - this is a key variable - we might be able to balance against 
 #        other variables
@@ -1271,10 +1273,10 @@ rm(by_ecoreg_mg, by_month_mg, by_site_mg, by_year_mg)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #    0.0    30.0    56.5    70.1    96.0   263.0     483 
 
-by_year_na <- clean %>%
-  filter(na != is.na(na)) %>%
-  group_by(year) %>%
-  summarize(mean(na))
+# by_year_na <- clean %>%
+#   filter(na != is.na(na)) %>%
+#   group_by(year) %>%
+#   summarize(mean(na))
 
 # summary(by_year_na)
 # year mean(na) 
@@ -1291,10 +1293,10 @@ by_year_na <- clean %>%
 # 2011 68.02222
 
 # group by ecorgion and summarize na
-by_ecoreg_na <- clean %>%
-  filter(na != is.na(na)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(na))
+# by_ecoreg_na <- clean %>%
+#   filter(na != is.na(na)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(na))
 
 # ecoregion mean(na)
 # BadLand  94.86861
@@ -1303,10 +1305,10 @@ by_ecoreg_na <- clean %>%
 # other    30.57143
 # TabLand  61.30374
 
-by_sub_na <- clean %>%
-  filter(na != is.na(na)) %>%
-  group_by(subws) %>%
-  summarize(mean(na))
+# by_sub_na <- clean %>%
+#   filter(na != is.na(na)) %>%
+#   group_by(subws) %>%
+#   summarize(mean(na))
 
 # subws mean(na)
 #  ChR 213.36667
@@ -1318,10 +1320,10 @@ by_sub_na <- clean %>%
 # LWR 35.04348
 
 # group by site and summarize na
-by_site_na <- clean %>%
-  filter(na != is.na(na)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(na))
+# by_site_na <- clean %>%
+#   filter(na != is.na(na)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(na))
  
 # samp_site mean(na)
 # AMH1 36.64286
@@ -1376,10 +1378,10 @@ by_site_na <- clean %>%
 # WOL1 14.59091
 
 # group by month and summarize na
-by_month_na <- clean %>%
-  filter(na != is.na(na)) %>%
-  group_by(month) %>%
-  summarize(mean(na))
+# by_month_na <- clean %>%
+#   filter(na != is.na(na)) %>%
+#   group_by(month) %>%
+#   summarize(mean(na))
 
 # mon mean(na)
 # 1  67.40000
@@ -1394,7 +1396,7 @@ by_month_na <- clean %>%
 # 12 81.13667 - odd change
 # NA 73.57862
 
-rm(by_ecoreg_na, by_month_na, by_site_na, by_year_na, by_sub_na)
+# rm(by_ecoreg_na, by_month_na, by_site_na, by_year_na, by_sub_na)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # k - this is not likely a key variable - it seems to be pretty 
@@ -1404,18 +1406,18 @@ rm(by_ecoreg_na, by_month_na, by_site_na, by_year_na, by_sub_na)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #   6.00   10.00   11.00   11.52   13.00   21.00    1031 
 
-by_year_k <- clean %>%
-  filter(k != is.na(k)) %>%
-  group_by(year) %>%
-  summarize(mean(k))
+# by_year_k <- clean %>%
+#   filter(k != is.na(k)) %>%
+#   group_by(year) %>%
+#   summarize(mean(k))
 
 # only 2011
 
 # group by ecorgion and summarize k
-by_ecoreg_k <- clean %>%
-  filter(k != is.na(k)) %>%
-  group_by(ecoregion) %>%
-  summarize(k_avg = mean(k))
+# by_ecoreg_k <- clean %>%
+#   filter(k != is.na(k)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(k_avg = mean(k))
 
 # ecoregion mean(k)
 # BadLand 12.958333
@@ -1423,10 +1425,10 @@ by_ecoreg_k <- clean %>%
 # LWR 7.916667
 # TabLand 11.142857
 
-by_sub_k <- clean %>%
-  filter(k != is.na(k)) %>%
-  group_by(subws) %>%
-  summarize(mean(k))
+# by_sub_k <- clean %>%
+#   filter(k != is.na(k)) %>%
+#   group_by(subws) %>%
+#   summarize(mean(k))
 
 # subws mean(k)
 # subws mean(k)
@@ -1435,10 +1437,10 @@ by_sub_k <- clean %>%
 # WhW 11.22917
 
 # group by site and summarize k
-by_site_k <- clean %>%
-  filter(k != is.na(k)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(k))
+# by_site_k <- clean %>%
+#   filter(k != is.na(k)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(k))
  
 # samp_site mean(k)
 # samp_site mean(k)
@@ -1459,10 +1461,10 @@ by_site_k <- clean %>%
 # WOL1 8.500000
 
 # group by month and summarize k
-by_month_k <- clean %>%
-  filter(k != is.na(k)) %>%
-  group_by(month) %>%
-  summarize(mean(k))
+# by_month_k <- clean %>%
+#   filter(k != is.na(k)) %>%
+#   group_by(month) %>%
+#   summarize(mean(k))
 
 # mon mean(k)
 # 5  11.60000
@@ -1472,7 +1474,7 @@ by_month_k <- clean %>%
 # 9  11.53333
 # 10 10.26667
 
-rm(by_month_k, by_site_k, by_year_k, by_sub_k)
+# rm(by_month_k, by_site_k, by_year_k, by_sub_k)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # cl - this is a key variable - we might be able to use hardness ratio
@@ -1481,10 +1483,10 @@ rm(by_month_k, by_site_k, by_year_k, by_sub_k)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #   0.00    5.00    9.00   15.04   14.00  152.00     476 
 
-by_year_cl <- clean %>%
-  filter(cl != is.na(cl)) %>%
-  group_by(year) %>%
-  summarize(mean(cl))
+# by_year_cl <- clean %>%
+#   filter(cl != is.na(cl)) %>%
+#   group_by(year) %>%
+#   summarize(mean(cl))
 
 # summary(by_year_cl)
 # year mean(cl) 
@@ -1503,10 +1505,10 @@ by_year_cl <- clean %>%
 # 2011 23.94444
 
 # group by ecorgion and summarize cl
-by_ecoreg_cl <- clean %>%
-  filter(cl != is.na(cl)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(cl))
+# by_ecoreg_cl <- clean %>%
+#   filter(cl != is.na(cl)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(cl))
 
 # ecoregion mean(cl)
 # BadLand 12.625180
@@ -1515,10 +1517,10 @@ by_ecoreg_cl <- clean %>%
 # TabLand 9.977493
 
 # group by site and summarize cl
-by_site_cl <- clean %>%
-  filter(cl != is.na(cl)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(cl))
+# by_site_cl <- clean %>%
+#   filter(cl != is.na(cl)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(cl))
  
 # samp_site mean(cl)
 # AMH1 6.181818
@@ -1569,10 +1571,10 @@ by_site_cl <- clean %>%
 # WOL1 5.595652
 
 # group by month and summarize cl
-by_month_cl <- clean %>%
-  filter(cl != is.na(cl)) %>%
-  group_by(month) %>%
-  summarize(mean(cl))
+# by_month_cl <- clean %>%
+#   filter(cl != is.na(cl)) %>%
+#   group_by(month) %>%
+#   summarize(mean(cl))
 
 # mon mean(cl)
 # 1  6.000000#
@@ -1586,24 +1588,18 @@ by_month_cl <- clean %>%
 # 12 11.645333
 # NA 16.154787
 
-rm(by_ecoreg_cl, by_month_cl, by_site_cl, by_year_cl)
-
-
-
-
-
-
+# rm(by_ecoreg_cl, by_month_cl, by_site_cl, by_year_cl)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # f - this is a key variable 
 
-summary(clean$f) 
+# summary(clean$f) 
 #  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 # 0.0400  0.3600  0.4000  0.4335  0.5000  3.9000     566 
 
-by_year_f <- clean %>%
-  filter(f != is.na(f)) %>%
-  group_by(year) %>%
-  summarize(mean(f))
+# by_year_f <- clean %>%
+#   filter(f != is.na(f)) %>%
+#   group_by(year) %>%
+ #  summarize(mean(f))
 
 # summary(by_year_f)
 
@@ -1634,10 +1630,10 @@ by_ecoreg_f <- clean %>%
 
 
 # group by site and summarize f
-by_site_f <- clean %>%
-  filter(f != is.na(f)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(f))
+# by_site_f <- clean %>%
+#   filter(f != is.na(f)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(f))
  
 # samp_site mean(f)
 # AMH1 0.3733333
@@ -1688,10 +1684,10 @@ by_site_f <- clean %>%
 # WOL1 0.4588889
 
 # group by month and summarize f
-by_month_f <- clean %>%
-  filter(f != is.na(f)) %>%
-  group_by(month) %>%
-  summarize(mean(f))
+# by_month_f <- clean %>%
+#   filter(f != is.na(f)) %>%
+#   group_by(month) %>%
+#   summarize(mean(f))
 
 # mon mean(f)
 # 1  0.3400000
@@ -1705,7 +1701,7 @@ by_month_f <- clean %>%
 # 12 0.4403333
 # NA 0.4569634
 
-rm(by_month_f, by_site_f, by_year_f)
+# rm(by_month_f, by_site_f, by_year_f)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # so4 - this is a key variable - we might be able to use hardness ratio
@@ -1714,10 +1710,10 @@ rm(by_month_f, by_site_f, by_year_f)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #   0.00   18.75   32.00   94.87   51.25 1260.00     489 
 
-by_year_so4 <- clean %>%
-  filter(so4 != is.na(so4)) %>%
-  group_by(year) %>%
-  summarize(mean(so4))
+# by_year_so4 <- clean %>%
+#   filter(so4 != is.na(so4)) %>%
+#   group_by(year) %>%
+#   summarize(mean(so4))
 
 # summary(by_year_so4)
 # year mean(so4) 
@@ -1738,7 +1734,7 @@ by_year_so4 <- clean %>%
 by_ecoreg_so4 <- clean %>%
   filter(so4 != is.na(so4)) %>%
   group_by(ecoregion) %>%
-  summarize(mean(so4))
+  summarize(so4_ave = mean(so4))
 
 # ecoregion mean(so4)
 # BadLand 103.25362
@@ -1747,10 +1743,10 @@ by_ecoreg_so4 <- clean %>%
 # TabLand  42.61109
 
 # group by site and summarize so4
-by_site_so4 <- clean %>%
-  filter(so4 != is.na(so4)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(so4))
+# by_site_so4 <- clean %>%
+#   filter(so4 != is.na(so4)) %>%
+#   group_by(samp_site) %>%
+#   summarize(so4_avg = mean(so4))
  
 # samp_site mean(so4)
 # AMH1 26.94667
@@ -1800,7 +1796,7 @@ by_site_so4 <- clean %>%
 # WOK4 50.18750
 # WOL1 19.83000
 
-rm(by_ecoreg_so4, by_site_so4, by_year_so4)
+# rm(by_site_so4, by_year_so4)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # nate - this is a key variable - we might be able to use hardness ratio
@@ -1809,10 +1805,10 @@ rm(by_ecoreg_so4, by_site_so4, by_year_so4)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 # 0.0000  0.0000  0.1200  0.3013  0.4000  7.0000     124 
 
-by_year_nate <- clean %>%
-  filter(nate != is.na(nate)) %>%
-  group_by(year) %>%
-  summarize(mean(nate))
+# by_year_nate <- clean %>%
+#   filter(nate != is.na(nate)) %>%
+#   group_by(year) %>%
+#   summarize(mean(nate))
 
 # summary(by_year_nate)
 # year mean(nate) 
@@ -1837,10 +1833,10 @@ by_year_nate <- clean %>%
 # 2013 0.6390000
 
 # group by ecorgion and summarize nate
-by_ecoreg_nate <- clean %>%
-  filter(nate != is.na(nate)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(nate))
+# by_ecoreg_nate <- clean %>%
+#   filter(nate != is.na(nate)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(nate))
 
 # ecoregion mean(nate)
 # BadLand 0.4527143
@@ -1850,10 +1846,10 @@ by_ecoreg_nate <- clean %>%
 # TabLand 0.4148348
 
 # group by site and summarize nate
-by_site_nate <- clean %>%
-  filter(nate != is.na(nate)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(nate))
+# by_site_nate <- clean %>%
+#   filter(nate != is.na(nate)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(nate))
  
 # samp_site mean(nate)
 # AMH1 0.15700000
@@ -1908,7 +1904,7 @@ by_site_nate <- clean %>%
 # WOK4 0.25928571
 # WOL1 0.17875000
 
-rm(by_ecoreg_nate, by_site_nate, by_year_nate)
+# rm(by_ecoreg_nate, by_site_nate, by_year_nate)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # op - this is a key variable - we might be able to use hardness ratio
@@ -1917,10 +1913,10 @@ rm(by_ecoreg_nate, by_site_nate, by_year_nate)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 # 0.0000  0.0655  0.1300  0.2109  0.2350 11.0000     475 
 
-by_year_op <- clean %>%
-  filter(op != is.na(op)) %>%
-  group_by(year) %>%
-  summarize(mean(op))
+# by_year_op <- clean %>%
+#   filter(op != is.na(op)) %>%
+#   group_by(year) %>%
+#   summarize(mean(op))
 
 # summary(by_year_op)
 # year mean(op) 
@@ -1939,10 +1935,10 @@ by_year_op <- clean %>%
 # 2011 0.12800000
 
 # group by ecorgion and summarize op
-by_ecoreg_op <- clean %>%
-  filter(op != is.na(op)) %>%
-  group_by(ecoregion) %>%
-  summarize(mean(op))
+# by_ecoreg_op <- clean %>%
+#   filter(op != is.na(op)) %>%
+#   group_by(ecoregion) %>%
+#   summarize(mean(op))
 
 # ecoregion mean(op)
 # BadLand 0.37964748
@@ -1951,10 +1947,10 @@ by_ecoreg_op <- clean %>%
 # TabLand 0.15497051
 
 # group by site and summarize op
-by_site_op <- clean %>%
-  filter(op != is.na(op)) %>%
-  group_by(samp_site) %>%
-  summarize(mean(op))
+# by_site_op <- clean %>%
+#   filter(op != is.na(op)) %>%
+#   group_by(samp_site) %>%
+#   summarize(mean(op))
  
 # samp_site mean(op)
 # AMH1 0.18545455
@@ -2004,13 +2000,13 @@ by_site_op <- clean %>%
 # WOK4 0.16425000
 # WOL1 0.09108333
 
-rm(by_ecoreg_op, by_site_op, by_year_op)
+# rm(by_ecoreg_op, by_site_op, by_year_op)
 ```
 
 ```{r munge.data}
 # create a ca/mg ratio 
 munged <- clean %>%
-mutate(ca_mg_rat = ca/mg)
+  mutate(ca_mg_rat = ca/mg)
 
 by_ecoreg_ca_mg <- munged %>%
   filter(ca_mg_rat != is.na(ca_mg_rat)) %>%
@@ -2018,13 +2014,15 @@ by_ecoreg_ca_mg <- munged %>%
   summarize(ca_mg_avg = mean(ca_mg_rat))
 
 by_ecoreg_f <- munged %>%
-  filter(ca_mg_rat != is.na(ca_mg_rat)) %>%
+  filter(f != is.na(f)) %>%
   group_by(ecoregion) %>%
-  summarize(ca_mg_avg = mean(ca_mg_rat))
+  summarize(f_avg = mean(f))
 
+# create by_ecoregion columns for conservative vars with missing data
 munged <- left_join(munged, by_ecoreg_ca_mg, by = "ecoregion")
-
 munged = left_join(munged, by_ecoreg_k, by = "ecoregion") 
+munged = left_join(munged, by_ecoreg_f, by = "ecoregion") 
+munged = left_join(munged, by_ecoreg_so4, by = "ecoregion") 
 
 # remove cases with no data by removing is.na Ca & is.na Na
 # k is pretty conservative.  Assume k is similiar across sites within 
@@ -2041,7 +2039,10 @@ munged <- munged %>%
   mutate(ca_mg_rat = if_else(is.na(ca_mg_rat), ca_mg_avg, ca_mg_rat)) %>%
   mutate(ca_mg_rat = round(ca_mg_rat, digits = 3)) %>%
   select(-ca_mg_avg)  %>%
-  mutate(k = if_else(is.na(k), k_avg, k))
+  mutate(k = if_else(is.na(k), k_avg, k)) %>%
+  mutate(f = if_else(is.na(f), f_avg, f)) %>%
+  mutate(so4 = if_else(is.na(so4), so4_ave, so4))
+
 ```
 
 
@@ -2078,72 +2079,42 @@ input <- munged %>%
   mutate(op_meq = round(op/96, digits = 4))%>%
   mutate(so4_meq = round(so4/96, digits = 4)) %>%
   mutate(tp_meq = round(tp/96, digits = 4)) %>%
-  mutate(hco3_meq = round(alk/100, digits = 4)) %>%
   mutate(ntot_meq = nate_meq + nite_meq) %>%
   mutate(nate_meq = if_else(is.na(ntot_meq) | ntot_meq > nate_meq, 
                             ntot_meq, nate_meq)) %>%
   mutate(cation = ca_meq + mg_meq + na_meq + k_meq) %>%
+  mutate(anion_part = cl_meq + f_meq + so4_meq) %>%
+  mutate(hco3_meq = cation - anion_part) %>%
+  mutate(anion = anion_part + hco3_meq) %>%
+  mutate(cation_part = na_meq + k_meq) %>%
+  mutate(cation = if_else(is.na(cation), anion - cation_part, cation)) %>%
   select(sort, latitude, longitude, samp_site, subws, ecoregion, 
          year, month, temp_c, ph, cond, ca_meq, mg_meq,
          na_meq, k_meq, cl_meq, f_meq, so4_meq, nate_meq,
-         op_meq, tp_meq, hco3_meq, ca_mg_rat, cation) 
+         op_meq, tp_meq, hco3_meq, ca_mg_rat, cation, anion, cation_part) 
 
+# estimate bicarbonate concentation from group averages
+by_ecoreg_hco3 <- input %>%
+  filter(hco3_meq != is.na(hco3_meq)) %>%
+  group_by(ecoregion) %>%
+  summarize(hco3_avg = mean(hco3_meq))
 
+input = left_join(input, by_ecoreg_hco3, by = "ecoregion") 
 
-# create an average ratio of ca_mg by ecoregion
+input <- input %>%
+  mutate(hco3_meq = round(if_else(is.na(hco3_meq), hco3_avg, hco3_meq),
+                          digits = 4)) %>%
+  mutate(anion = if_else(is.na(anion), hco3_meq + cl_meq + f_meq + 
+                           so4_meq, anion)) %>%
+  mutate(cation = if_else(is.na(cation), anion, cation)) %>%
+  mutate(hard2 = cation - cation_part) %>%
+  mutate(ca_meq = if_else(is.na(ca_meq), round(hard2/ca_mg_rat, digits = 4), ca_meq)) %>%
+  mutate(mg_meq = if_else(is.na(mg_meq), round(hard2-ca_meq, digits = 4), mg_meq)) %>%
+  select(-hard2) %>%
+  select(-hco3_avg) %>%
+  select(-cation_part)
 
-
-
-
-
-  mutate(cations = ca_meq + mg_meq + k_meq + na_meq) 
-
-# munge the ca
-
-
-# lm.ca <- lm(ca_meq ~ mg_meq + ecoregion, data = input)
-# lm.ca <- augment(lm.ca) %>%
-#  select(.rownames, .fitted) %>%
-#  rename(ca_fit = .fitted) %>%
-#  rename(sort = .rownames)
-
-```
-
-
-
-
-
-```{r munge.lin.mods}
-ggplot(clean, aes(ca, mg)) +
-  facet_wrap(~ecoregion) +
-    geom_point() +
-  geom_smooth(method = "lm") +
-  theme_tufte() +
-  ggtitle("Exploratory boxplot of ca:mg ratio")
-
-ggplot(lm.hard, aes(.fitted, ca_meq)) +
-    geom_point() +
-  geom_smooth(method = "lm") +
-  theme_tufte() +
-  ggtitle("Exploratory boxplot of ca:mg ratio")
-
-%>%
-  select(estimate)
-summary(lm.hard)
-
-
-
-# the ca: mg ratio looks pretty clear across the sites
-hard.lm <- lm(mg ~ ca -1, data = hard.lwr)
-hard.lm <- tidy(hard.lm) 
-
-
-# create a tp-op relationship
-phos.lm <- lm(op ~ tp, data = clean)
-summary(phos.lm)
-phos.lm <- augment(phos.lm)
-
-
+clean2 <- input
 ```
 
 
@@ -2151,24 +2122,9 @@ phos.lm <- augment(phos.lm)
 
 
 
-p2 <- ggplot(input, aes(ecoregion, ph)) +
-  geom_boxplot() +
-  theme_tufte() +
-  ggtitle("Exploratory Boxplots of Wine Variables")
-
- 
 
 
-```
 
- 
-
-```{r}
-ggplot(clean, aes(nite, nate)) +
-  geom_point() +
-  theme_tufte() +
-  ggtitle("Exploratory Nite vs Nate")
-```
 
 
 
