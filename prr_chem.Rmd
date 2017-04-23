@@ -90,10 +90,7 @@ library(ggfortify)  # biplots
 library(MVN)        # tests for multivariate normality.  Requires: 'pcaPP', 
                     #   ‘laeken’, ‘cvTools’, ‘sROC’, ‘VIM’, ‘sgeostat’, 
                     #   ‘robCompositions’, ‘moments’, ‘mvoutlier’
-library(gridExtra)   # useful for grid.arrange
 library(AID) # Estimation of Box-Cox Power Trans. Parameter
-library(tidyverse) # tidy data manipulation and graphics
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # table packages:
 # library(knitr)       # lightweight table package
@@ -454,8 +451,6 @@ clean <- cleaner %>%
 # the rest of the vars are trace metals
 ```
 
-
-
 ```{r validate.variables}
 # One of the challenges with field variables is that instruments were
 # not always calculated by technicians.  For this reason pH has a wide
@@ -811,7 +806,7 @@ by_month_hard <- clean %>%
 # There seems to be some interactions with hardness in time and space.
 # Given the number of sites with very low hardness right around the cutoff
 # I think these low values are real.
-rm(by_ecoreg_hard, by_site_hard, by_year_hard, whr5_hard, by_month_hard)
+rm(by_ecoreg_hard, by_site_hard, by_year_hard, by_month_hard)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # tp - total phosphorus is the dissolved phos + particulate phos
 # we have recorded some very large values of TP during rainfall events
@@ -934,8 +929,8 @@ rm(by_ecoreg_tp, by_month_tp, by_site_tp, by_year_tp)
 # summary(clean$nh3)
 # indicates that there is a single large ammonia hit.  Should remove
 # from analysis.
-clean <- clean %>%
-  select(-nh3)
+# clean <- clean %>%
+#  select(-nh3)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Nite - nitrite this quickly moves to NO3.
@@ -1482,7 +1477,7 @@ rm(by_month_k, by_site_k, by_year_k, by_sub_k)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # cl - this is a key variable - we might be able to use hardness ratio
 
-summary(clean$cl) # might potentially want to keep in analysis
+# summary(clean$cl) # might potentially want to keep in analysis
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #   0.00    5.00    9.00   15.04   14.00  152.00     476 
 
@@ -1593,6 +1588,125 @@ by_month_cl <- clean %>%
 
 rm(by_ecoreg_cl, by_month_cl, by_site_cl, by_year_cl)
 
+
+
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# f - this is a key variable 
+
+summary(clean$f) 
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+# 0.0400  0.3600  0.4000  0.4335  0.5000  3.9000     566 
+
+by_year_f <- clean %>%
+  filter(f != is.na(f)) %>%
+  group_by(year) %>%
+  summarize(mean(f))
+
+# summary(by_year_f)
+
+# year mean(f) 
+# 1993 0.4092222
+# 1994 0.4234940
+# 1995 0.4053409
+# 1996 0.4011594
+# 1997 0.3948077
+# 1998 0.4325000
+# 1999 0.5216279
+# 2000 0.4227273
+# 2003 0.5310000
+# 2004 0.6654167
+# 2005 0.4550000
+
+# group by ecorgion and summarize f
+by_ecoreg_f <- clean %>%
+  filter(f != is.na(f)) %>%
+  group_by(ecoregion) %>%
+  summarize(mean(f))
+
+# ecoregion mean(f)
+# BadLand 0.4597414
+# CheyRiv 0.4960000
+# LWR     0.4464634
+# TabLand 0.4175668
+
+
+# group by site and summarize f
+by_site_f <- clean %>%
+  filter(f != is.na(f)) %>%
+  group_by(samp_site) %>%
+  summarize(mean(f))
+ 
+# samp_site mean(f)
+# AMH1 0.3733333
+# BEA1 0.4183333
+# BEA2 0.4846154
+# BEA3 0.4720000
+# BEL1 0.4430000
+# BEL2 0.4100000
+# BLP1 0.3916667
+# BLP2 0.4000000
+# BUZ1 0.4250000
+# CHR1 0.4707143
+# CHR2 0.5550000
+# COR1 0.5427273
+# CRA1 0.2307143
+# EAN1 0.2337500
+# EAN2 0.6057143
+# LCC1 0.3271429
+# LOD1 0.3380000
+# LON1 0.2790000
+# LWR1 0.4475000
+# LWR2 0.4664286
+# LWR3 0.4210000
+# LWR4 0.5353846
+# MER1 0.4223077
+# MER2 0.3587500
+# MER3 0.4173333
+# NFL1 0.4638462
+# PAS1 0.5281818
+# PAS2 0.3777778
+# PAS3 0.3800000
+# POR1 0.3694444
+# POR2 0.4514286
+# POR3 0.4718750
+# POT1 0.4781250
+# RED1 0.3990909
+# WCC1 0.4662500
+# WCC2 0.4178571
+# WCC3 0.4028571
+# WHR1 0.5231250
+# WHR2 0.5135714
+# WHR3 0.4421429
+# WHR4 0.4663636
+# WOK1 0.3520000
+# WOK2 0.4520000
+# WOK3 0.4558333
+# WOK4 0.4110000
+# WOL1 0.4588889
+
+# group by month and summarize f
+by_month_f <- clean %>%
+  filter(f != is.na(f)) %>%
+  group_by(month) %>%
+  summarize(mean(f))
+
+# mon mean(f)
+# 1  0.3400000
+# 5  0.4228125
+# 6  0.4331897
+# 7  0.4657895
+# 8  0.5020000
+# 9  0.3995238
+# 10 0.3756452
+# 11 0.3636364
+# 12 0.4403333
+# NA 0.4569634
+
+rm(by_month_f, by_site_f, by_year_f)
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # so4 - this is a key variable - we might be able to use hardness ratio
 
@@ -1686,12 +1800,12 @@ by_site_so4 <- clean %>%
 # WOK4 50.18750
 # WOL1 19.83000
 
-rm(by_ecoreg_so4, by_month_so4, by_site_so4, by_year_so4)
+rm(by_ecoreg_so4, by_site_so4, by_year_so4)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # nate - this is a key variable - we might be able to use hardness ratio
 
-summary(clean$nate) # might potentially want to keep in analysis
+# summary(clean$nate) # might potentially want to keep in analysis
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 # 0.0000  0.0000  0.1200  0.3013  0.4000  7.0000     124 
 
@@ -1794,7 +1908,7 @@ by_site_nate <- clean %>%
 # WOK4 0.25928571
 # WOL1 0.17875000
 
-rm(by_ecoreg_nate, by_month_nate, by_site_nate, by_year_nate)
+rm(by_ecoreg_nate, by_site_nate, by_year_nate)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # op - this is a key variable - we might be able to use hardness ratio
@@ -1890,24 +2004,54 @@ by_site_op <- clean %>%
 # WOK4 0.16425000
 # WOL1 0.09108333
 
-rm(by_ecoreg_op, by_month_op, by_site_op, by_year_op)
+rm(by_ecoreg_op, by_site_op, by_year_op)
+```
+
+```{r munge.data}
+# create a ca/mg ratio 
+munged <- clean %>%
+mutate(ca_mg_rat = ca/mg)
+
+by_ecoreg_ca_mg <- munged %>%
+  filter(ca_mg_rat != is.na(ca_mg_rat)) %>%
+  group_by(ecoregion) %>%
+  summarize(ca_mg_avg = mean(ca_mg_rat))
+
+by_ecoreg_f <- munged %>%
+  filter(ca_mg_rat != is.na(ca_mg_rat)) %>%
+  group_by(ecoregion) %>%
+  summarize(ca_mg_avg = mean(ca_mg_rat))
+
+munged <- left_join(munged, by_ecoreg_ca_mg, by = "ecoregion")
+
+munged = left_join(munged, by_ecoreg_k, by = "ecoregion") 
+
+# remove cases with no data by removing is.na Ca & is.na Na
+# k is pretty conservative.  Assume k is similiar across sites within 
+# an ecoregion.
+
+munged <- munged %>%
+  mutate(no_anion = if_else(is.na(so4) & is.na(cl) & is.na(f), 1, 0)) %>%
+  filter(no_anion == 0) %>%
+  select(-no_anion) %>%  
+  mutate(no_cation = if_else(is.na(na) & is.na(ca), 1, 0)) %>%
+  filter(no_cation == 0) %>%
+  select(-no_cation) %>%
+  mutate(ca_mg_rat = ca/mg) %>%
+  mutate(ca_mg_rat = if_else(is.na(ca_mg_rat), ca_mg_avg, ca_mg_rat)) %>%
+  mutate(ca_mg_rat = round(ca_mg_rat, digits = 3)) %>%
+  select(-ca_mg_avg)  %>%
+  mutate(k = if_else(is.na(k), k_avg, k))
 ```
 
 
 ```{r munge.input}
-# k is pretty conservative.  Assume k is similiar across sites within 
-# an ecoregion.
-
-input = left_join(clean, by_ecoreg_k) 
-# rm(by_ecoreg_k)
-
 # the "other" stations are downstream from lift stations and can be
 # removed; remove metals data ; change major anions and cations; 
 # change mg/l to meq/l by using MW and charge, op = HPO4^2-;
 # mw HPO4 = 1+31+4*16 mg/mmol
 
-
-input <- input %>%
+input <- munged %>%
   filter(ecoregion != "other") %>%
   select(-as)%>%
   select(-ba)%>%
@@ -1922,56 +2066,88 @@ input <- input %>%
   select(-se)%>%
   select(-ag)%>%
   select(-zn) %>%
-  
-  mutate(ca_meq = round(2*ca/40, digits = 2)) %>%
-  mutate(mg_meq = round(2*mg/24.3, digits = 2)) %>%
-  mutate(na_meq = round(na/23, digits = 2)) %>%
-  mutate(k_meq = round(k/39, digits = 2)) %>%
-  mutate(cl_meq = round(cl/35.5, digits = 2)) %>%
-  mutate(f_meq = round(f/19, digits = 2)) %>%
-  mutate(so4_meq = round(so4/96, digits = 2)) %>%
-  mutate(nite_meq = round(nite/46, digits = 2)) %>%
-  mutate(nate_meq = round(nate/62, digits = 2)) %>%
-  mutate(op_meq = round(op/96, digits = 2)) %>%
-  mutate(so4_meq = round(so4/96, digits = 2)) %>%
-  mutate(tp_meq = round(tp/96, digits = 2)) %>%
-  mutate(hco3_meq = round(alk/100, digits = 2)) %>%
-  mutate(k_meq = if_else(is.na(k_meq), k_avg, k_meq)) %>%
-  
+  mutate(ca_meq = round(2*ca/40, digits = 4)) %>%
+  mutate(mg_meq = round(2*mg/24.3, digits = 4)) %>%
+  mutate(na_meq = round(na/23, digits = 4)) %>%
+  mutate(k_meq = round(k/39, digits = 4)) %>%
+  mutate(cl_meq = round(cl/35.5, digits = 4)) %>%
+  mutate(f_meq = round(f/19, digits = 4)) %>%
+  mutate(so4_meq = round(so4/96, digits = 4)) %>%
+  mutate(nite_meq = round(nite/46, digits = 4)) %>%
+  mutate(nate_meq = round(nate/62, digits = 4)) %>%
+  mutate(op_meq = round(op/96, digits = 4))%>%
+  mutate(so4_meq = round(so4/96, digits = 4)) %>%
+  mutate(tp_meq = round(tp/96, digits = 4)) %>%
+  mutate(hco3_meq = round(alk/100, digits = 4)) %>%
+  mutate(ntot_meq = nate_meq + nite_meq) %>%
+  mutate(nate_meq = if_else(is.na(ntot_meq) | ntot_meq > nate_meq, 
+                            ntot_meq, nate_meq)) %>%
+  mutate(cation = ca_meq + mg_meq + na_meq + k_meq) %>%
   select(sort, latitude, longitude, samp_site, subws, ecoregion, 
-         year, month, temp_c, ph, cond, hardness, ca_meq, mg_meq,
-         na_meq, k_meq, cl_meq, f_meq, so4_meq, nite_meq, nate_meq,
-         op_meq, tp_meq, hco3_meq) %>%
+         year, month, temp_c, ph, cond, ca_meq, mg_meq,
+         na_meq, k_meq, cl_meq, f_meq, so4_meq, nate_meq,
+         op_meq, tp_meq, hco3_meq, ca_mg_rat, cation) 
+
+
+
+# create an average ratio of ca_mg by ecoregion
+
+
+
+
+
   mutate(cations = ca_meq + mg_meq + k_meq + na_meq) 
+
+# munge the ca
+
+
+# lm.ca <- lm(ca_meq ~ mg_meq + ecoregion, data = input)
+# lm.ca <- augment(lm.ca) %>%
+#  select(.rownames, .fitted) %>%
+#  rename(ca_fit = .fitted) %>%
+#  rename(sort = .rownames)
 
 ```
 
 
-```{r}
-ggplot(clean, aes(ca_meq, mg_meq)) +
+
+
+
+```{r munge.lin.mods}
+ggplot(clean, aes(ca, mg)) +
   facet_wrap(~ecoregion) +
-  geom_point() +
-  geom_smooth(method = lm) +
+    geom_point() +
+  geom_smooth(method = "lm") +
   theme_tufte() +
   ggtitle("Exploratory boxplot of ca:mg ratio")
 
-cation.lwr <- clean %>%
-  filter(ecoregion == "LWR") %>%
-  select(sort, mg_meq, ca_meq, na_meq)
-  
+ggplot(lm.hard, aes(.fitted, ca_meq)) +
+    geom_point() +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+  ggtitle("Exploratory boxplot of ca:mg ratio")
+
+%>%
+  select(estimate)
+summary(lm.hard)
 
 
 
 # the ca: mg ratio looks pretty clear across the sites
 hard.lm <- lm(mg ~ ca -1, data = hard.lwr)
-hard.est <- 
+hard.lm <- tidy(hard.lm) 
+
+
+# create a tp-op relationship
+phos.lm <- lm(op ~ tp, data = clean)
+summary(phos.lm)
+phos.lm <- augment(phos.lm)
+
+
 ```
 
 
 
-
-p1 <- 
-p1
 
 
 
