@@ -65,7 +65,7 @@ States and Tribal Nations are mandated to protect and restore the Nation's water
 A commonly used approach to handle missing values is to replace the missing value with the group mean.  
 
 
-```{r}
+```{r setup}
 #A fundemental challenge in the retrospective analysis of environmental systems is missing data.
 
 
@@ -77,20 +77,22 @@ A commonly used approach to handle missing values is to replace the missing valu
 #
 # Prior to running it is probably a good idea to install these packages
 # and update your other packages.
+library(stringr)    # string tools
 library(janitor)    # quick tools for cleaning up var names
 library(broom)      # tidies up output 
 library(lubridate)  # makes dealing with dates a little easier
 library(gridExtra)  # misc. functions for "Grid" graphics
-library(modelr)     # functions for modelling that help to
-                    # seamlessly integrate modelling into a pipeline
-                    # of data manipulation and visualisation.
 library(ggthemes)   # Some extra themes, geoms, and scales for 'ggplot2'.
-library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
 library(ggfortify)  # biplots
 library(MVN)        # tests for multivariate normality.  Requires: 'pcaPP', 
                     #   ‘laeken’, ‘cvTools’, ‘sROC’, ‘VIM’, ‘sgeostat’, 
                     #   ‘robCompositions’, ‘moments’, ‘mvoutlier’
 library(AID) # Estimation of Box-Cox Power Trans. Parameter
+# library(modelr)   # functions for modelling that help to
+                    #   seamlessly integrate modelling into a pipeline
+                    #   of data manipulation and visualisation.
+library(GGally)     # extends 'ggplot2' functionality; 'ggpairs'
+library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # table packages:
 # library(knitr)       # lightweight table package
@@ -114,7 +116,7 @@ library(AID) # Estimation of Box-Cox Power Trans. Parameter
 #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # some other packages might be useful are:
-# GGally              # extends 'ggplot2' functionality
+
 # ggbiplot            # needs a the github installation 
 # forcats             # tools for working with factors
 # httr                # tools for working with urls
@@ -395,6 +397,11 @@ cleaner <- raw %>%
          tp, nite, nh3, ca, mg, na, k, cl, f, so4, nate, op, everything())
   
 ## Warnings:: NAs introduced by coercion: "NA" - need to find and fix
+
+# Fix incorrect latitude
+cleaner <- cleaner %>%
+  mutate(latitude = if_else(samp_site == "POR1", 43.23253, latitude))
+
 ```
 
 ```{r munge.data.clean}
@@ -1414,10 +1421,10 @@ clean <- clean %>%
 # only 2011
 
 # group by ecorgion and summarize k
-# by_ecoreg_k <- clean %>%
-#   filter(k != is.na(k)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(k_avg = mean(k))
+ by_ecoreg_k <- clean %>%
+   filter(k != is.na(k)) %>%
+   group_by(ecoregion) %>%
+   summarize(k_avg = mean(k))
 
 # ecoregion mean(k)
 # BadLand 12.958333
@@ -2045,14 +2052,13 @@ munged <- munged %>%
 
 ```
 
-
 ```{r munge.input}
 # the "other" stations are downstream from lift stations and can be
 # removed; remove metals data ; change major anions and cations; 
 # change mg/l to meq/l by using MW and charge, op = HPO4^2-;
 # mw HPO4 = 1+31+4*16 mg/mmol
-
-input <- munged %>%
+clean3 <- clean2
+clean2 <- munged %>%
   filter(ecoregion != "other") %>%
   select(-as)%>%
   select(-ba)%>%
@@ -2094,28 +2100,434 @@ input <- munged %>%
          op_meq, tp_meq, hco3_meq, ca_mg_rat, cation, anion, cation_part) 
 
 # estimate bicarbonate concentation from group averages
-by_ecoreg_hco3 <- input %>%
+by_ecoreg_hco3 <- clean2 %>%
   filter(hco3_meq != is.na(hco3_meq)) %>%
   group_by(ecoregion) %>%
   summarize(hco3_avg = mean(hco3_meq))
 
-input = left_join(input, by_ecoreg_hco3, by = "ecoregion") 
+clean2 = left_join(clean2, by_ecoreg_hco3, by = "ecoregion") 
 
-input <- input %>%
+clean2 <- clean2 %>%
   mutate(hco3_meq = round(if_else(is.na(hco3_meq), hco3_avg, hco3_meq),
                           digits = 4)) %>%
   mutate(anion = if_else(is.na(anion), hco3_meq + cl_meq + f_meq + 
-                           so4_meq, anion)) %>%
-  mutate(cation = if_else(is.na(cation), anion, cation)) %>%
-  mutate(hard2 = cation - cation_part) %>%
+                           so4_meq, anion))  %>%
+  mutate(cation = if_else(is.na(cation), anion, cation))  %>%
+  mutate(hard2 = cation - cation_part)
+  
+test <- clean2 %>%
+  filter(subws == "WhB")
+  
+
+
+
   mutate(ca_meq = if_else(is.na(ca_meq), round(hard2/ca_mg_rat, digits = 4), ca_meq)) %>%
   mutate(mg_meq = if_else(is.na(mg_meq), round(hard2-ca_meq, digits = 4), mg_meq)) %>%
   select(-hard2) %>%
   select(-hco3_avg) %>%
   select(-cation_part)
 
-clean2 <- input
+rm(by_ecoreg_ca_mg, by_ecoreg_f, by_ecoreg_hco3, by_ecoreg_k, by_ecoreg_so4)
 ```
+
+
+```{r prepare.pca}
+# prepare to do a pca of major cations and anions by removing non-
+# relevant variables, such as date, temperature and field conductivity
+# (which has errors and is duplicated), and nutrients.  Because of 
+# missing values, pH was also removed.
+
+input <- clean2 %>%
+  select(-year) %>%
+  select(-month) %>%
+  select(-temp_c) %>%
+  select(-nate_meq) %>%
+  select(-op_meq) %>%
+  select(-tp_meq) %>%
+  select(-cond) %>%
+  select(-ph) %>%
+  select(-ecoregion) %>%
+  select(-subws) %>%
+  mutate(sort = as.character(sort)) %>%
+  mutate(samp_site = as.character(samp_site)) %>%
+  mutate(newcol = str_c(samp_site, sort, sep = "_")) %>%
+  select(-samp_site) %>%
+  select(-sort) %>%
+  na.omit(latitude)
+
+summary(input$ca_meq)
+```
+
+```{r pairs.plot.untransformed.data}
+input <- input %>%
+  column_to_rownames(var = "newcol")
+ggpairs(input, title = "Major Anions and Cations - Untransformed Data") +
+  theme_tufte()
+```
+
+## Check best transformations for wine variables
+The table below identifies the best transformations for wine variables using an artificial covariate method to estimate the Box-Cox power transformation parameter.  Several variables are still not normally distributed.  Following transformation the data were scaled and centered.
+
+```{r box.cox}
+# calculate box cox power transform parameters and create dataframes 
+# to combine using cbind
+alc <- boxcoxnc(wine.raw$alcohol, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+alc.df <- as.data.frame(alc$lambda.hat) 
+
+mal <- boxcoxnc(wine.raw$malic_acid, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+mal.df <- as.data.frame(mal$lambda.hat) 
+
+ash <- boxcoxnc(wine.raw$ash, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+ash.df <- as.data.frame(ash$lambda.hat) 
+
+alk <- boxcoxnc(wine.raw$alk_ash, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+alk.df <- as.data.frame(alk$lambda.hat) 
+
+mg <- boxcoxnc(wine.raw$mg, method = "sw", lam = seq(-3,3,0.01), 
+               plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+mg.df <- as.data.frame(alc$lambda.hat) 
+
+phen <- boxcoxnc(wine.raw$phenols, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+phen.df <- as.data.frame(mal$lambda.hat) 
+
+flav <- boxcoxnc(wine.raw$flav, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+flav.df <- as.data.frame(flav$lambda.hat) 
+
+nflav <- boxcoxnc(wine.raw$nflavphen, method = "sw", lam = seq(-3,3,0.01), 
+                  plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+nflav.df <- as.data.frame(nflav$lambda.hat) 
+
+proa <- boxcoxnc(wine.raw$proanth, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+proa.df <- as.data.frame(proa$lambda.hat) 
+
+col <- boxcoxnc(wine.raw$col_intens, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+col.df <- as.data.frame(col$lambda.hat) 
+
+hue <- boxcoxnc(wine.raw$hue, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+hue.df <- as.data.frame(hue$lambda.hat) 
+
+od <- boxcoxnc(wine.raw$od280_od315, method = "sw", lam = seq(-3,3,0.01), 
+               plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+od.df <- as.data.frame(od$lambda.hat) 
+
+prol <- boxcoxnc(wine.raw$proline, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+prol.df <- as.data.frame(prol$lambda.hat) 
+
+# create a dataframe of the transformations
+lambda.val <- cbind(alc.df, mal.df, ash.df, alk.df, mg.df, phen.df, 
+                    nflav.df, proa.df, col.df, hue.df, od.df, prol.df )
+
+lambda.val <- t(lambda.val)
+lambda.val <- as.data.frame(lambda.val) %>%
+  rownames_to_column() %>%
+  rename(variable = rowname) %>%
+  rename(lamda_val = V1)
+
+# transform the data to approach normal
+wine <- wine.raw %>%
+  mutate(alcohol = (alcohol^alc$lambda.hat-1)/alc$lambda.hat) %>%
+  mutate(malic_acid = (malic_acid^mal$lambda.hat-1)/mal$lambda.hat) %>%
+  mutate(ash = (ash^ash$lambda.hat-1)/ash$lambda.hat) %>%
+  mutate(alk_ash = (alk_ash^alk$lambda.hat-1)/alk$lambda.hat) %>%
+  mutate(mg = (mg^mg$lambda.hat-1)/mg$lambda.hat) %>%
+  mutate(phenols = (phenols^phen$lambda.hat-1)/phen$lambda.hat) %>%
+  mutate(flav = (flav^flav$lambda.hat-1)/flav$lambda.hat) %>%
+  mutate(nflavphen = (nflavphen^nflav$lambda.hat-1)/nflav$lambda.hat) %>%
+  mutate(proanth = (proanth^proa$lambda.hat-1)/proa$lambda.hat) %>%
+  mutate(col_intens = (col_intens^col$lambda.hat-1)/col$lambda.hat) %>%
+  mutate(hue = (hue^hue$lambda.hat-1)/hue$lambda.hat) %>%
+  mutate(od280_od315 = (od280_od315^od$lambda.hat-1)/od$lambda.hat) %>%
+  mutate(proline = (proline^prol$lambda.hat-1)/prol$lambda.hat)
+         
+rm(alc, alk, ash, col, flav, hue, mal, mg, nflav, od, phen, proa, prol)
+rm(alc.df, alk.df, ash.df, col.df, flav.df, hue.df, mal.df, mg.df, 
+   nflav.df, od.df, phen.df, proa.df, prol.df)
+
+wine.input.all <- wine %>%
+  select(-class) %>%
+  select(-obs_num) 
+
+# The scale() function centers and scales the data
+wine.input.all <- as.data.frame(scale(wine.input.all, center = TRUE, scale = TRUE))
+```
+
+```{r pairs.plot.transformed.data}
+ggpairs(wine.input.all, title = "Comparision of Chemical Analysis of Wine - Transformed Data") +
+  theme_tufte()
+```
+
+Analysis of multivariate normality indicates a strong outlier exists that should be identified (see below).  Analyis should continue with and without the strong outlier to see its effects on the PCA plots.  
+
+## Multivariate Test of Box Cox Transformed Wine Data: All Observations
+
+```{r multivar.tests.Mardia}
+mardiaTest(wine.input.all, qqplot = TRUE)
+```
+
+I identified the outlier uisng a trial and error approach as observation #119, which has maximum or near maximum values for ash, alkalinity of ash, and flavanoids.
+
+## Multivariate Test of Box Cox Transformed Wine Data: Outlier Removed 
+
+Even with the outlier removed some caution in interpreting PCA axes is advised, as the assumption of multivariate normality is somewhat violated.  An indication of violation of multivariate linearity is a horse-shoe shaped arch in the ordination space (McCune and Grace 2002).
+```{r outlier.remove}
+# remove the multivariate 
+wine.outrm <- wine.raw %>%
+  filter(flav < 4)
+
+wine.input.outrm <- wine.input.all %>%
+  filter(flav < 2)
+
+mardiaTest(wine.input.outrm, qqplot = TRUE)
+```
+
+## 1. This is an open-ended question. Perform a principal components analysis on the data and report your findings. Be thorough in your explanation and interpretation of the most relevant principal components. Your assignment should read like a report. Note: do not include the response variable in your analysis.
+
+The summary tables below summarizes the results of PCA of transformed wine data using all of the observations and with the multivariate outlier removed.
+
+### PCA Results: transformed wine data using all observations.
+```{r pca.all}
+# conduct a pca using all of the data
+wine.all.pca <- prcomp(wine.input.all, scale = TRUE, center = TRUE) 
+summary(wine.all.pca)
+```
+
+### PCA Results: transformed wine data with outlier removed.
+```{r pca.outlier.rm}
+# conduct a pca on the dataset with the outlier removed
+wine.outrm.pca <- prcomp(wine.input.outrm, scale = TRUE, center = TRUE) 
+summary(wine.outrm.pca)
+```
+
+### Scree plot of the PCAs
+```{r eigenvectors.all}
+# calculate eigenvectors with all of the data
+cormat.all <- cor(wine.input.all)
+eigdecomp.all <- as.data.frame(eigen(cormat.all))
+eigdecomp.all <- rownames_to_column(eigdecomp.all)
+
+eigdecomp.all <- eigdecomp.all %>%
+  mutate(rowname = as.integer(rowname))
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cormat.out <- cor(wine.input.outrm)
+eigdecomp.out <- as.data.frame(eigen(cormat.out))
+eigdecomp.out <- rownames_to_column(eigdecomp.out)
+
+eigdecomp.out <- eigdecomp.out %>%
+  mutate(rowname = as.integer(rowname))
+
+# plot the scree plots
+s1 <- ggplot(eigdecomp.all, aes(rowname,values)) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 1, lty=2) +
+  theme_tufte() +
+  labs(title = "Scree plot of PCA eigenvectors using all data", 
+       y = "Eigenvector magnitude", x = "")
+
+s2 <- ggplot(eigdecomp.out, aes(rowname,values)) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 1, lty=2) +
+  theme_tufte() +
+  labs(title = "Scree plot of PCA eigenvectors with outlier removed", 
+       y = "Eigenvector magnitude", x = "")
+
+grid.arrange(s1, s2, ncol = 2)
+```
+
+The screeplots indicate the first three principal components, which explain about 67% of the variance of the data, should be kept.
+
+
+```{r tidy.pca}
+pca.all.eig <- tidy(wine.all.pca, "variables")
+pca.all.eig <- spread(pca.all.eig, key = PC, value = value) %>%
+  select(1:4)
+pca.all.au <- augment(wine.all.pca, data = wine)
+
+pca.all.eig
+```
+
+```{r biplot}
+
+p1 <- autoplot(wine.all.pca, data = wine.raw, shape = "class") +
+  theme_tufte() +
+  ggtitle("Ordinate Plot of Wines - All Data") +
+  theme(legend.position = "none")
+
+p2 <- autoplot(wine.outrm.pca, data = wine.outrm, shape = "class") +
+  theme_tufte() +
+  ggtitle("Ordinate Plot of Wines - Outlier Removed") +
+  theme(legend.position = "none")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+The shape of the ordination diagram is indicitive of the distortion caused by interpreting data that does not meet linearity assumptions using PCA.  However, the strong outlier does not look as if it affects the ordination.
+
+```{r}
+autoplot(wine.all.pca, data = wine.raw, shape = "class", loadings = TRUE, loadings.label = TRUE) +
+  theme_tufte() +
+  ggtitle("Ordinate Plot of Wines") +
+  theme(legend.position = "none")
+```
+
+The first PCA axis describes samples with high concentrations of flavanoids, total phenols, and proanthocyanins and a highod280 to od315 ratio on one end of the gradient and samples with high concentrations of nonflavanoid phenols and ash alkalinity at the other end of the gradient.  The second PCA axis describes a gradient of increasing to decreasing color intensity, alcohol content, ash, proline, and magnesium.  The third PCA axis, not shown, describes high to low concentrations of ash and ash alkalinity.  The factors that might best describe differences among cultivars are: class 1 is described by low PCA1, meaning high flavanoid, total phenol, proanthocyanin, and od280_od315 values, class 2 is described by low color intensity, alcohol content, ash, proline, and magnesium values, class 3 is described by 
+high values of malic acid, nonflavanoid phenols and ash alkalinity. 
+
+## 2. Use discriminate analysis to analyze the data. Again, this is somewhat open ended. Describe your analysis and findings. For this analysis, the goal is to predict the cultivator (i.e. class).
+
+
+## 3. Using the results of your analysis, predict the classes of the following 4 wines. Use both the PCA and the Discriminate analysis to perform your predictions.
+
+| Wine | Alcohol | Malic_Acid |   Ash   | Alk of Ash | Magnesium | Phenols |
+|:----:|:-------:|:----------:|:-------:|:----------:|:---------:|:-------:|
+|  1   |  12.25  |     4.72   |  2.54   |     21     |     89    |  1.38   |
+|  2   |  12.51  |     1.73   |  1.98   |     20.5   |     85    |  2.2    |
+|  3   |  12.42  |     2.55   |  2.27   |     22     |     90    |  1.68   |
+|  4   |  14.06  |     2.15   |  2.61   |     17.6   |    121    |  2.6    |
+
+| Wine | Flavoid | N_flav_phen | Proanthc | Col.Ints | Hue   | OD280_OD315 | Proline |
+|  1   |  0.47   |     0.53    |   0.80   |  3.85    |  0.75 |     1.27    |   720   |
+|  2   |  1.92   |     0.32    |   1.48   |  2.94    |  1.04 |     3.57    |   672   |
+|  3   |  1.84   |     0.66    |   1.42   |  2.7     |  0.86 |     3.3     |   315   |
+|  4   |  2.51   |     0.31    |   1.25   |  5.05    |  1.06 |     3.58    |  1295   |
+
+
+
+```{r outlier.id.boxplot, eval = FALSE}
+p0 <- ggplot(wine, aes(class, rowsum)) +
+  geom_boxplot() +
+  theme_tufte() +
+  ggtitle("Exploratory Boxplots of Wine Variables")
+
+p1 <- ggplot(wine.raw, aes(class, alcohol)) +
+  geom_boxplot() +
+  theme_tufte() +
+  ggtitle("")
+
+p2 <- ggplot(wine.raw, aes(class, malic_acid)) +
+  geom_boxplot() +
+  theme_tufte() 
+
+p3 <- ggplot(wine.raw, aes(class, ash)) +
+  geom_boxplot() +
+  theme_tufte()
+
+p4 <- ggplot(wine.raw, aes(class, alk_ash)) +
+  geom_boxplot() +
+  theme_tufte()
+
+p5 <- ggplot(wine.raw, aes(class, mg)) +
+  geom_boxplot() +
+  theme_tufte()
+
+p6 <- ggplot(wine.raw, aes(class, phenols)) +
+  geom_boxplot() +
+  theme_tufte()
+
+p7 <- ggplot(wine.raw, aes(class, flav)) +
+  geom_boxplot() +
+  theme_tufte()
+
+grid.arrange(p0, p1, p2, p3, p4, p5, p6, p7, ncol = 2)
+```
+
+```{r outlier.id.boxplot2, eval = FALSE}
+
+p8 <- ggplot(wine.raw, aes(class, nflavphen)) +
+  geom_boxplot() +
+  theme_tufte() +
+  ggtitle("Exploratory Boxplots of Wine Variables Continued")
+  
+p9 <- ggplot(wine.raw, aes(class, proanth)) +
+  geom_boxplot() +
+  theme_tufte() +
+  ggtitle("")
+
+p10 <- ggplot(wine.raw, aes(class, col_intens)) +
+  geom_boxplot() +
+  theme_tufte()
+  
+p11 <- ggplot(wine.raw, aes(class, hue)) +
+  geom_boxplot() +
+  theme_tufte()
+
+p12 <- ggplot(wine.raw, aes(class, od280_od315)) +
+  geom_boxplot() +
+  theme_tufte()
+
+p13 <- ggplot(wine.raw, aes(class, proline)) +
+  geom_boxplot() +
+  theme_tufte()
+
+grid.arrange(p8, p9, p10, p11, p12, p13, ncol = 2)
+```
+
+Because my analysis identified a strong multivariate outlier, I should examine the variables individually using boxplots and in pairs using scatterplots.  Note that alcohol, malic acid, and flavanoids doesn't have univariate outliers, mg, phenols, proanthocyanins, hue have high univariate outliers, and ash and alkalinity of ash have high and low univariate outliers.
+
+## Bivariate Exploratory Analysis
+```{r outlier.id.statterplot, eval= FALSE}
+
+p14 <- ggplot(wine.raw, aes(flav, mg)) +
+  geom_point(aes(shape = factor(class))) +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+  ggtitle("Exploratory Boxplots of Wine Variables") +
+   theme(legend.position = "none") 
+
+p15 <- ggplot(wine.raw, aes(hue, proanth)) +
+  geom_point(aes(shape = factor(class))) +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+  theme(legend.position = "none") 
+
+p16 <- ggplot(wine.raw, aes(ash, alk_ash)) +
+  geom_point(aes(shape = factor(class))) +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+  theme(legend.position = "none") 
+
+p17 <- ggplot(wine.raw, aes(mg, flav)) +
+  geom_point(aes(shape = factor(class))) +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+   theme(legend.position = "none") 
+
+p18 <- ggplot(wine.raw, aes(proanth, hue)) +
+  geom_point(aes(shape = factor(class))) +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+  theme(legend.position = "none") 
+
+p19 <- ggplot(wine.raw, aes(alk_ash, ash)) +
+  geom_point(aes(shape = factor(class))) +
+  geom_smooth(method = "lm") +
+  theme_tufte() +
+  theme(legend.position = "none") 
+
+ grid.arrange(p14, p15, p16, p17, p18, p19, ncol = 3)
+```
+
+
+
+
+
+
+
+
+
+
 
 
 
