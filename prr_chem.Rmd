@@ -127,7 +127,7 @@ library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
 # xml2                # parse XML
 ```
 
-```{r load.data, echo = FALSE}
+```{r load.raw.data, echo = FALSE}
 # The original xlsx file "Chemistry-1993-2013_17Mar21" was converted
 # to a csv.using Excel.  The remainder of this chunk is to clean and
 # standardize names, remove empty colums and rows, and add grouping 
@@ -407,7 +407,18 @@ cleaner <- cleaner %>%
 ```{r munge.data.clean}
 # 'Clean' is subsetted from the cleaner raw data.  
 
+# We found three cases in which strong evidence exists for removal based on the cases not
+# meeting electroneutrality: BEL1-19950606, BLP1-19940712, WHR3-19941007.
+# Additionally, POR3 case 1038 had a calcium value that was VERY different than everything 
+#   and WOK4 case 1098 had some very odd mg values
 clean <- cleaner %>%
+  filter(sort != "69") %>%
+  filter(sort != "99") %>%
+  filter(sort != "632") %>%
+  filter(sort != "1038") %>%
+  filter(sort != "1098")
+
+clean <- clean %>%
   select(-flow_cfs) %>%
   select(-high_low) %>%
   select(-time) %>%
@@ -461,7 +472,7 @@ clean <- cleaner %>%
 ```{r validate.variables}
 # One of the challenges with field variables is that instruments were
 # not always calculated by technicians.  For this reason pH has a wide
-# spread.  
+# spread.  The data below should be updated given the removal of 69, 99, 632
 #
 # ph
 # summary(clean$ph)
@@ -1074,10 +1085,10 @@ clean <- clean %>%
 # 2013 37.06977
 
 # group by ecorgion and summarize ca
-# by_ecoreg_ca <- clean %>%
-#   filter(ca != is.na(ca)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(ca))
+by_ecoreg_ca <- clean %>%
+   filter(ca != is.na(ca)) %>%
+   group_by(ecoregion) %>%
+   summarize(ca_ave = mean(ca))
 
 # Ecoreg  mean(ca)
 # BadLand 37.21942
@@ -1186,10 +1197,10 @@ clean <- clean %>%
 # 2013 4.906977
 
 # group by ecorgion and summarize mg
-# by_ecoreg_mg <- clean %>%
-#   filter(mg != is.na(mg)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(mg))
+by_ecoreg_mg <- clean %>%
+   filter(mg != is.na(mg)) %>%
+   group_by(ecoregion) %>%
+   summarize(mg_ave = mean(mg))
 
 # ecoregion mean(mg)
 # BadLand 6.220388
@@ -1424,7 +1435,7 @@ clean <- clean %>%
  by_ecoreg_k <- clean %>%
    filter(k != is.na(k)) %>%
    group_by(ecoregion) %>%
-   summarize(k_avg = mean(k))
+   summarize(k_ave = mean(k))
 
 # ecoregion mean(k)
 # BadLand 12.958333
@@ -1627,7 +1638,7 @@ clean <- clean %>%
 by_ecoreg_f <- clean %>%
   filter(f != is.na(f)) %>%
   group_by(ecoregion) %>%
-  summarize(mean(f))
+  summarize(f_ave = mean(f))
 
 # ecoregion mean(f)
 # BadLand 0.4597414
@@ -2012,28 +2023,27 @@ by_ecoreg_so4 <- clean %>%
 
 ```{r munge.data}
 # create a ca/mg ratio 
-munged <- clean %>%
-  mutate(ca_mg_rat = ca/mg)
+munged <- clean
+#  mutate(mg_ca_rat = mg/ca)
 
-by_ecoreg_ca_mg <- munged %>%
-  filter(ca_mg_rat != is.na(ca_mg_rat)) %>%
-  group_by(ecoregion) %>%
-  summarize(ca_mg_avg = mean(ca_mg_rat))
-
-by_ecoreg_f <- munged %>%
-  filter(f != is.na(f)) %>%
-  group_by(ecoregion) %>%
-  summarize(f_avg = mean(f))
+#by_ecoreg_mg_ca <- munged %>%
+#  filter(mg_ca_rat != is.na(mg_ca_rat)) %>%
+#  group_by(ecoregion) %>%
+#  summarize(mg_ca_ave = mean(mg_ca_rat))
 
 # create by_ecoregion columns for conservative vars with missing data
-munged <- left_join(munged, by_ecoreg_ca_mg, by = "ecoregion")
-munged = left_join(munged, by_ecoreg_k, by = "ecoregion") 
-munged = left_join(munged, by_ecoreg_f, by = "ecoregion") 
-munged = left_join(munged, by_ecoreg_so4, by = "ecoregion") 
+# munged <- left_join(munged, by_ecoreg_mg_ca, by = "ecoregion")
+munged <- left_join(munged, by_ecoreg_k, by = "ecoregion") 
+munged <- left_join(munged, by_ecoreg_f, by = "ecoregion") 
+munged <- left_join(munged, by_ecoreg_so4, by = "ecoregion") 
+munged <- left_join(munged, by_ecoreg_ca, by = "ecoregion") 
+munged <- left_join(munged, by_ecoreg_mg, by = "ecoregion") 
+
+rm(by_ecoreg_ca, by_ecoreg_mg, by_ecoreg_f, by_ecoreg_k, by_ecoreg_so4)
 
 # remove cases with no data by removing is.na Ca & is.na Na
 # k is pretty conservative.  Assume k is similiar across sites within 
-# an ecoregion.
+# an ecoregion, as well as f, so4, and the ca_mg ratio
 
 munged <- munged %>%
   mutate(no_anion = if_else(is.na(so4) & is.na(cl) & is.na(f), 1, 0)) %>%
@@ -2042,22 +2052,20 @@ munged <- munged %>%
   mutate(no_cation = if_else(is.na(na) & is.na(ca), 1, 0)) %>%
   filter(no_cation == 0) %>%
   select(-no_cation) %>%
+  mutate(k = if_else(is.na(k), k_ave, k)) %>%
+  mutate(f = if_else(is.na(f), f_ave, f)) %>%
+  mutate(so4 = if_else(is.na(so4), so4_ave, so4)) %>%
+  mutate(ca = if_else(is.na(ca), ca_ave, ca)) %>%
+  mutate(mg = if_else(is.na(mg), mg_ave, mg)) %>%
   mutate(ca_mg_rat = ca/mg) %>%
-  mutate(ca_mg_rat = if_else(is.na(ca_mg_rat), ca_mg_avg, ca_mg_rat)) %>%
-  mutate(ca_mg_rat = round(ca_mg_rat, digits = 3)) %>%
-  select(-ca_mg_avg)  %>%
-  mutate(k = if_else(is.na(k), k_avg, k)) %>%
-  mutate(f = if_else(is.na(f), f_avg, f)) %>%
-  mutate(so4 = if_else(is.na(so4), so4_ave, so4))
-
+  mutate(ca_mg_rat = round(ca_mg_rat, digits = 3)) 
 ```
 
-```{r munge.input}
+```{r munge.input.clean2}
 # the "other" stations are downstream from lift stations and can be
 # removed; remove metals data ; change major anions and cations; 
 # change mg/l to meq/l by using MW and charge, op = HPO4^2-;
 # mw HPO4 = 1+31+4*16 mg/mmol
-clean3 <- clean2
 clean2 <- munged %>%
   filter(ecoregion != "other") %>%
   select(-as)%>%
@@ -2090,52 +2098,21 @@ clean2 <- munged %>%
                             ntot_meq, nate_meq)) %>%
   mutate(cation = ca_meq + mg_meq + na_meq + k_meq) %>%
   mutate(anion_part = cl_meq + f_meq + so4_meq) %>%
-  mutate(hco3_meq = cation - anion_part) %>%
-  mutate(anion = anion_part + hco3_meq) %>%
-  mutate(cation_part = na_meq + k_meq) %>%
-  mutate(cation = if_else(is.na(cation), anion - cation_part, cation)) %>%
+  mutate(hco3 = cation - anion_part) %>%
+  mutate(anion = hco3 + anion_part) %>%
   select(sort, latitude, longitude, samp_site, subws, ecoregion, 
          year, month, temp_c, ph, cond, ca_meq, mg_meq,
          na_meq, k_meq, cl_meq, f_meq, so4_meq, nate_meq,
-         op_meq, tp_meq, hco3_meq, ca_mg_rat, cation, anion, cation_part) 
-
-# estimate bicarbonate concentation from group averages
-by_ecoreg_hco3 <- clean2 %>%
-  filter(hco3_meq != is.na(hco3_meq)) %>%
-  group_by(ecoregion) %>%
-  summarize(hco3_avg = mean(hco3_meq))
-
-clean2 = left_join(clean2, by_ecoreg_hco3, by = "ecoregion") 
-
-clean2 <- clean2 %>%
-  mutate(hco3_meq = round(if_else(is.na(hco3_meq), hco3_avg, hco3_meq),
-                          digits = 4)) %>%
-  mutate(anion = if_else(is.na(anion), hco3_meq + cl_meq + f_meq + 
-                           so4_meq, anion))  %>%
-  mutate(cation = if_else(is.na(cation), anion, cation))  %>%
-  mutate(hard2 = cation - cation_part)
-  
-test <- clean2 %>%
-  filter(subws == "WhB")
-  
-
-
-
-  mutate(ca_meq = if_else(is.na(ca_meq), round(hard2/ca_mg_rat, digits = 4), ca_meq)) %>%
-  mutate(mg_meq = if_else(is.na(mg_meq), round(hard2-ca_meq, digits = 4), mg_meq)) %>%
-  select(-hard2) %>%
-  select(-hco3_avg) %>%
-  select(-cation_part)
-
-rm(by_ecoreg_ca_mg, by_ecoreg_f, by_ecoreg_hco3, by_ecoreg_k, by_ecoreg_so4)
+         op_meq, tp_meq, ca_mg_rat,hco3, cation, anion) 
 ```
 
-
-```{r prepare.pca}
+```{r prepare.data.for.pca}
 # prepare to do a pca of major cations and anions by removing non-
 # relevant variables, such as date, temperature and field conductivity
-# (which has errors and is duplicated), and nutrients.  Because of 
-# missing values, pH was also removed.
+# (which has errors and is duplicated)  Because of  missing values and 
+# instrument errors(e.g. there is good evidence for instrument drift), 
+# pH was also removed. nutrients were removed as these are the data we 
+# will be estimating
 
 input <- clean2 %>%
   select(-year) %>%
@@ -2152,166 +2129,320 @@ input <- clean2 %>%
   mutate(samp_site = as.character(samp_site)) %>%
   mutate(newcol = str_c(samp_site, sort, sep = "_")) %>%
   select(-samp_site) %>%
+  na.omit(latitude) %>%
   select(-sort) %>%
-  na.omit(latitude)
-
-summary(input$ca_meq)
+  mutate(na_meq = na_meq + 0.01) %>%
+  mutate(cl_meq = cl_meq + 0.01) %>%
+  mutate(so4_meq = so4_meq + 0.01) %>%
+  column_to_rownames(var = "newcol")
 ```
 
 ```{r pairs.plot.untransformed.data}
-input <- input %>%
-  column_to_rownames(var = "newcol")
 ggpairs(input, title = "Major Anions and Cations - Untransformed Data") +
   theme_tufte()
 ```
 
-## Check best transformations for wine variables
-The table below identifies the best transformations for wine variables using an artificial covariate method to estimate the Box-Cox power transformation parameter.  Several variables are still not normally distributed.  Following transformation the data were scaled and centered.
+## Check best transformations for variables
+We found the best transformations using an artificial covariate method to estimate the Box-Cox power transformation parameter.  #Several variables are still not normally distributed.#  Following transformation the data were scaled and centered.
 
 ```{r box.cox}
-# calculate box cox power transform parameters and create dataframes 
-# to combine using cbind
-alc <- boxcoxnc(wine.raw$alcohol, method = "sw", lam = seq(-3,3,0.01), 
+# The goal is to calculate box cox power transform parameters and 
+# create dataframes to combine using cbind
+#
+# box.cox::boxcoxnc parameters are as follows:
+#   method = sw; use default Wilks-Shapiro test
+#   lam = 'default'; use lambda vals from (-3, 3) with increments of 0.1
+#   plotit; logical test to print plots
+#   alpha; significance test with default of 0.05
+#   verbose; print output to console
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# calcium
+ca <- boxcoxnc(input$ca_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-alc.df <- as.data.frame(alc$lambda.hat) 
+ca.df <- as.data.frame(ca$lambda.hat) 
 
-mal <- boxcoxnc(wine.raw$malic_acid, method = "sw", lam = seq(-3,3,0.01), 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# magnesium
+mg <- boxcoxnc(input$mg_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-mal.df <- as.data.frame(mal$lambda.hat) 
+mg.df <- as.data.frame(mg$lambda.hat) 
 
-ash <- boxcoxnc(wine.raw$ash, method = "sw", lam = seq(-3,3,0.01), 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# sodium
+na <- boxcoxnc(input$na_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+na.df <- as.data.frame(na$lambda.hat) 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# potassium
+k <- boxcoxnc(input$k_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-ash.df <- as.data.frame(ash$lambda.hat) 
+k.df <- as.data.frame(k$lambda.hat) 
 
-alk <- boxcoxnc(wine.raw$alk_ash, method = "sw", lam = seq(-3,3,0.01), 
-                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-alk.df <- as.data.frame(alk$lambda.hat) 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# chloride
+cl <- boxcoxnc(input$cl_meq, method = "sw", lam = seq(-3,3,0.01), 
+               plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+cl.df <- as.data.frame(cl$lambda.hat) 
 
-mg <- boxcoxnc(wine.raw$mg, method = "sw", lam = seq(-3,3,0.01), 
-               plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-mg.df <- as.data.frame(alc$lambda.hat) 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# fluoride
+f <- boxcoxnc(input$f_meq, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+f.df <- as.data.frame(f$lambda.hat) 
 
-phen <- boxcoxnc(wine.raw$phenols, method = "sw", lam = seq(-3,3,0.01), 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# sulfate
+so4 <- boxcoxnc(input$so4_meq, method = "sw", lam = seq(-3,3,0.01), 
                  plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-phen.df <- as.data.frame(mal$lambda.hat) 
+so4.df <- as.data.frame(so4$lambda.hat) 
+#  data : input$so4_meq 
+#  lambda.hat : -0.05 
+#  p.value    : 2.64334e-16 
+#  Result     : Transformed data are not normal. 
 
-flav <- boxcoxnc(wine.raw$flav, method = "sw", lam = seq(-3,3,0.01), 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# bicarbonate
+hco3 <- boxcoxnc(input$hco3, method = "sw", lam = seq(-3,4,0.01), 
                  plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-flav.df <- as.data.frame(flav$lambda.hat) 
+hco3.df <- as.data.frame(hco3$lambda.hat) 
 
-nflav <- boxcoxnc(wine.raw$nflavphen, method = "sw", lam = seq(-3,3,0.01), 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# ratio of calcium to magnesium
+ca_mg_rat <- boxcoxnc(input$ca_mg_rat, method = "sw", lam = seq(-3,4,0.01), 
                   plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-nflav.df <- as.data.frame(nflav$lambda.hat) 
-
-proa <- boxcoxnc(wine.raw$proanth, method = "sw", lam = seq(-3,3,0.01), 
-                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-proa.df <- as.data.frame(proa$lambda.hat) 
-
-col <- boxcoxnc(wine.raw$col_intens, method = "sw", lam = seq(-3,3,0.01), 
-                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-col.df <- as.data.frame(col$lambda.hat) 
-
-hue <- boxcoxnc(wine.raw$hue, method = "sw", lam = seq(-3,3,0.01), 
-                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-hue.df <- as.data.frame(hue$lambda.hat) 
-
-od <- boxcoxnc(wine.raw$od280_od315, method = "sw", lam = seq(-3,3,0.01), 
-               plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-od.df <- as.data.frame(od$lambda.hat) 
-
-prol <- boxcoxnc(wine.raw$proline, method = "sw", lam = seq(-3,3,0.01), 
-                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
-prol.df <- as.data.frame(prol$lambda.hat) 
-
+ca_mg_rat.df <- as.data.frame(ca_mg_rat$lambda.hat) 
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # create a dataframe of the transformations
-lambda.val <- cbind(alc.df, mal.df, ash.df, alk.df, mg.df, phen.df, 
-                    nflav.df, proa.df, col.df, hue.df, od.df, prol.df )
-
+#   bind the lambdas together
+lambda.val <- cbind(ca.df, ca_mg_rat.df, cl.df, f.df, k.df, mg.df, 
+                    na.df, so4.df)
+#   transpose the lambdas
 lambda.val <- t(lambda.val)
+
+#   munge the lamdas a bit
 lambda.val <- as.data.frame(lambda.val) %>%
   rownames_to_column() %>%
   rename(variable = rowname) %>%
   rename(lamda_val = V1)
 
-# transform the data to approach normal
-wine <- wine.raw %>%
-  mutate(alcohol = (alcohol^alc$lambda.hat-1)/alc$lambda.hat) %>%
-  mutate(malic_acid = (malic_acid^mal$lambda.hat-1)/mal$lambda.hat) %>%
-  mutate(ash = (ash^ash$lambda.hat-1)/ash$lambda.hat) %>%
-  mutate(alk_ash = (alk_ash^alk$lambda.hat-1)/alk$lambda.hat) %>%
-  mutate(mg = (mg^mg$lambda.hat-1)/mg$lambda.hat) %>%
-  mutate(phenols = (phenols^phen$lambda.hat-1)/phen$lambda.hat) %>%
-  mutate(flav = (flav^flav$lambda.hat-1)/flav$lambda.hat) %>%
-  mutate(nflavphen = (nflavphen^nflav$lambda.hat-1)/nflav$lambda.hat) %>%
-  mutate(proanth = (proanth^proa$lambda.hat-1)/proa$lambda.hat) %>%
-  mutate(col_intens = (col_intens^col$lambda.hat-1)/col$lambda.hat) %>%
-  mutate(hue = (hue^hue$lambda.hat-1)/hue$lambda.hat) %>%
-  mutate(od280_od315 = (od280_od315^od$lambda.hat-1)/od$lambda.hat) %>%
-  mutate(proline = (proline^prol$lambda.hat-1)/prol$lambda.hat)
-         
-rm(alc, alk, ash, col, flav, hue, mal, mg, nflav, od, phen, proa, prol)
-rm(alc.df, alk.df, ash.df, col.df, flav.df, hue.df, mal.df, mg.df, 
-   nflav.df, od.df, phen.df, proa.df, prol.df)
-
-wine.input.all <- wine %>%
-  select(-class) %>%
-  select(-obs_num) 
+# transform the input data to approach normal
+input.tr <-input %>%
+  rownames_to_column("newcol") %>%
+  mutate(ca_meq = (ca_meq^ca$lambda.hat-1)/ca$lambda.hat) %>%
+  mutate(mg_meq = (mg_meq^mg$lambda.hat-1)/mg$lambda.hat) %>%
+  mutate(na_meq = (na_meq^na$lambda.hat-1)/na$lambda.hat) %>%
+  mutate(k_meq = (k_meq^k$lambda.hat-1)/k$lambda.hat) %>%
+  mutate(cl_meq = log(cl_meq)) %>%
+  mutate(f_meq = (f_meq^f$lambda.hat-1)/f$lambda.hat) %>%
+  mutate(hco3 = (hco3^f$lambda.hat-1)/hco3$lambda.hat) %>%
+  mutate(so4_meq = (so4_meq^so4$lambda.hat-1)/so4$lambda.hat) %>%
+  mutate(ca_mg_rat = (ca_mg_rat^ca_mg_rat$lambda.hat-1)/ca_mg_rat$lambda.hat) 
 
 # The scale() function centers and scales the data
-wine.input.all <- as.data.frame(scale(wine.input.all, center = TRUE, scale = TRUE))
-```
+input.sc <- input.tr %>%
+  column_to_rownames(var = "newcol")
 
-```{r pairs.plot.transformed.data}
-ggpairs(wine.input.all, title = "Comparision of Chemical Analysis of Wine - Transformed Data") +
+input.sc <- as.data.frame(scale(input.sc, center = TRUE, scale = TRUE))
+
+rm(ca, cl, f, k, mg, na, so4, ca.df, ca_mg_rat, ca_mg_rat.df, 
+   cl.df, f.df, k.df, mg.df, na.df, so4.df, hco3, hco3.df)
+
+ggpairs(input.sc, title = "Major Anions and Cations - Transformed Data") +
   theme_tufte()
 ```
 
-Analysis of multivariate normality indicates a strong outlier exists that should be identified (see below).  Analyis should continue with and without the strong outlier to see its effects on the PCA plots.  
+The results of the box-cox transformation indicates the data does not meet normality assumptions. Wounded Knee Creek 1 has very low magnesium values
+
+```{r box.cox.noCheyRiv}
+# Remove the Cheyenne River stations
+input.tert <- clean2 %>%
+  filter(subws != "ChR") %>%
+  select(-year) %>%
+  select(-month) %>%
+  select(-temp_c) %>%
+  select(-nate_meq) %>%
+  select(-op_meq) %>%
+  select(-tp_meq) %>%
+  select(-cond) %>%
+  select(-ph) %>%
+  select(-ecoregion) %>%
+  select(-subws) %>%
+  mutate(sort = as.character(sort)) %>%
+  mutate(samp_site = as.character(samp_site)) %>%
+  mutate(newcol = str_c(samp_site, sort, sep = "_")) %>%
+  select(-samp_site) %>%
+  na.omit(latitude) %>%
+  select(-sort)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# calcium
+ca <- boxcoxnc(input.tert$ca_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+ca.df <- as.data.frame(ca$lambda.hat) 
+#  Box-Cox Power Transformation 
+#  data : input.tert$ca_meq 
+#  lambda.hat : 0.25 
+#  p.value    : 7.127511e-29 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# magnesium
+mg <- boxcoxnc(input.tert$mg_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+mg.df <- as.data.frame(mg$lambda.hat) 
+#   Box-Cox Power Transformation 
+#  data : input.tert$mg_meq 
+#  lambda.hat : -1.85 
+#  p.value    : 2.72284e-34 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# sodium
+# have a couple of zero values for na that need to be positive
+input.tert <- input.tert %>%
+  mutate(na_meq = na_meq + 0.01)
+
+na <- boxcoxnc(input.tert$na_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+na.df <- as.data.frame(na$lambda.hat) 
+
+#  Box-Cox Power Transformation 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  data : input.tert$na_meq 
+#  lambda.hat : 0.26 
+#  p.value    : 0.000193715 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# potassium
+k <- boxcoxnc(input.tert$k_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+k.df <- as.data.frame(k$lambda.hat) 
+
+#  Box-Cox Power Transformation 
+#  data : input.tert$k_meq 
+#  lambda.hat : 1.3 
+#  p.value    : 1.487123e-23 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# chloride
+# have a couple of zero values for cl that need to be positive
+input.tert <- input.tert %>%
+  mutate(cl_meq = cl_meq + 0.01)
+
+cl <- boxcoxnc(input.tert$cl_meq, method = "sw", lam = seq(-3,3,0.01), 
+               plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+cl.df <- as.data.frame(cl$lambda.hat) 
+
+# Box-Cox Power Transformation 
+#  data : input.tert$cl_meq 
+#  lambda.hat : 0 
+#  p.value    : 3.201819e-16 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# fluoride
+f <- boxcoxnc(input.tert$f_meq, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+f.df <- as.data.frame(f$lambda.hat) 
+
+#  Box-Cox Power Transformation 
+#  data : input.tert$f_meq 
+# lambda.hat : 0.5 
+#  p.value    : 6.858415e-17 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# sulfate
+# have a couple of zero values for so4 that need to be positive
+input.tert <- input.tert %>%
+  mutate(so4_meq = so4_meq + 0.01)
+
+so4 <- boxcoxnc(input.tert$so4_meq, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+so4.df <- as.data.frame(so4$lambda.hat) 
+#  data : input.tert$so4_meq 
+#  lambda.hat : -0.05 
+#  p.value    : 2.64334e-16 
+#  Result     : Transformed data are not normal. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# ratio of calcium to magnesium
+ca_mg_rat <- boxcoxnc(input.tert$ca_mg_rat, method = "sw", lam = seq(-3,3,0.01), 
+                  plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+ca_mg_rat.df <- as.data.frame(ca_mg_rat$lambda.hat) 
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# create a dataframe of the transformations
+#
+#   bind the lambdas together
+lambda.val <- cbind(ca.df, ca_mg_rat.df, cl.df, f.df, k.df, mg.df, 
+                    na.df, so4.df)
+#   transpose the lambdas
+lambda.val <- t(lambda.val)
+
+#   munge the lamdas a bit
+lambda.val <- as.data.frame(lambda.val) %>%
+  rownames_to_column() %>%
+  rename(variable = rowname) %>%
+  rename(lamda_val = V1)
+
+# transform the input.tert data to approach normal
+input.tert.tr <-input.tert %>%
+  mutate(ca_meq = (ca_meq^ca$lambda.hat-1)/ca$lambda.hat) %>%
+  mutate(mg_meq = (mg_meq^mg$lambda.hat-1)/mg$lambda.hat) %>%
+  mutate(na_meq = (na_meq^na$lambda.hat-1)/na$lambda.hat) %>%
+  mutate(k_meq = (k_meq^k$lambda.hat-1)/k$lambda.hat) %>%
+  mutate(cl_meq = (cl_meq^cl$lambda.hat-1)/cl$lambda.hat) %>%
+  mutate(f_meq = (f_meq^f$lambda.hat-1)/f$lambda.hat) %>%
+  mutate(so4_meq = (so4_meq^so4$lambda.hat-1)/so4$lambda.hat) %>%
+  mutate(ca_mg_rat = (ca_mg_rat^ca_mg_rat$lambda.hat-1)/ca_mg_rat$lambda.hat) 
+         
+rm(ca, ca_mg_rat, cl, f, k, mg, na, so4)
+rm(ca.df, ca_mg_rat, cl.df, f.df, k.df, mg.df, na.df, so4.df)
+
+# The scale() function centers and scales the data
+input.tert.sc <- input.tert.tr %>%
+  column_to_rownames(var = "newcol")
+input.tert.sc <- as.data.frame(scale(input.tert.sc, center = TRUE, scale = TRUE))
+
+ggpairs(input.sc, title = "Transformed Major Anions and Cations - No ChRiv") +
+  theme_tufte()
+```
 
 ## Multivariate Test of Box Cox Transformed Wine Data: All Observations
 
 ```{r multivar.tests.Mardia}
-mardiaTest(wine.input.all, qqplot = TRUE)
+#mardiaTest(input.tr, qqplot = TRUE)
 ```
 
-I identified the outlier uisng a trial and error approach as observation #119, which has maximum or near maximum values for ash, alkalinity of ash, and flavanoids.
-
-## Multivariate Test of Box Cox Transformed Wine Data: Outlier Removed 
-
-Even with the outlier removed some caution in interpreting PCA axes is advised, as the assumption of multivariate normality is somewhat violated.  An indication of violation of multivariate linearity is a horse-shoe shaped arch in the ordination space (McCune and Grace 2002).
-```{r outlier.remove}
-# remove the multivariate 
-wine.outrm <- wine.raw %>%
-  filter(flav < 4)
-
-wine.input.outrm <- wine.input.all %>%
-  filter(flav < 2)
-
-mardiaTest(wine.input.outrm, qqplot = TRUE)
+```{r multivar.tests.Mardia}
+#mardiaTest(input.tert.sc, qqplot = TRUE)
 ```
 
-## 1. This is an open-ended question. Perform a principal components analysis on the data and report your findings. Be thorough in your explanation and interpretation of the most relevant principal components. Your assignment should read like a report. Note: do not include the response variable in your analysis.
+## Multivariate Test of Box Cox Transformed Tertiary Age Watersheds
+
+Even with the outlier removed some caution in interpreting PCA axes is advised, as the assumption of normality is violated.  
+
+
+An indication of violation of ###multivariate linearity is a horse-shoe shaped arch in the ordination space (McCune and ###Grace 2002).
 
 The summary tables below summarizes the results of PCA of transformed wine data using all of the observations and with the multivariate outlier removed.
 
 ### PCA Results: transformed wine data using all observations.
 ```{r pca.all}
 # conduct a pca using all of the data
-wine.all.pca <- prcomp(wine.input.all, scale = TRUE, center = TRUE) 
-summary(wine.all.pca)
+
+input.pca <- prcomp(input.sc, scale = TRUE, center = TRUE) 
+summary(input.pca)
 ```
 
-### PCA Results: transformed wine data with outlier removed.
-```{r pca.outlier.rm}
-# conduct a pca on the dataset with the outlier removed
-wine.outrm.pca <- prcomp(wine.input.outrm, scale = TRUE, center = TRUE) 
-summary(wine.outrm.pca)
+```{r pca.tert}
+# conduct a pca using the data with Cheyenne River removed
+input.tert.pca <- prcomp(input.tert.sc, scale = TRUE, center = TRUE) 
+summary(input.tert.pca)
 ```
 
 ### Scree plot of the PCAs
 ```{r eigenvectors.all}
 # calculate eigenvectors with all of the data
-cormat.all <- cor(wine.input.all)
+cormat.all <- cor(input.sc)
 eigdecomp.all <- as.data.frame(eigen(cormat.all))
 eigdecomp.all <- rownames_to_column(eigdecomp.all)
 
@@ -2319,11 +2450,11 @@ eigdecomp.all <- eigdecomp.all %>%
   mutate(rowname = as.integer(rowname))
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cormat.out <- cor(wine.input.outrm)
-eigdecomp.out <- as.data.frame(eigen(cormat.out))
-eigdecomp.out <- rownames_to_column(eigdecomp.out)
+cormat.tert <- cor(input.tert.sc)
+eigdecomp.tert <- as.data.frame(eigen(cormat.tert))
+eigdecomp.tert <- rownames_to_column(eigdecomp.tert)
 
-eigdecomp.out <- eigdecomp.out %>%
+eigdecomp.tert <- eigdecomp.tert %>%
   mutate(rowname = as.integer(rowname))
 
 # plot the scree plots
@@ -2335,7 +2466,7 @@ s1 <- ggplot(eigdecomp.all, aes(rowname,values)) +
   labs(title = "Scree plot of PCA eigenvectors using all data", 
        y = "Eigenvector magnitude", x = "")
 
-s2 <- ggplot(eigdecomp.out, aes(rowname,values)) +
+s2 <- ggplot(eigdecomp.tert, aes(rowname,values)) +
   geom_line() +
   geom_point() +
   geom_hline(yintercept = 1, lty=2) +
@@ -2346,41 +2477,52 @@ s2 <- ggplot(eigdecomp.out, aes(rowname,values)) +
 grid.arrange(s1, s2, ncol = 2)
 ```
 
-The screeplots indicate the first three principal components, which explain about 67% of the variance of the data, should be kept.
+The screeplots indicate the four principal components are relevant and explain about 80% of the variance of the data.
 
 
 ```{r tidy.pca}
-pca.all.eig <- tidy(wine.all.pca, "variables")
+pca.all.eig <- tidy(input.pca, "variables")
 pca.all.eig <- spread(pca.all.eig, key = PC, value = value) %>%
   select(1:4)
-pca.all.au <- augment(wine.all.pca, data = wine)
+pca.all.au <- augment(input.pca, data = input)
 
 pca.all.eig
 ```
 
+PCA 1 describes a 
+the ca-mg ratio alone, which is the same as the chey riv difference.  No new information from PCA1
+
+```{r tidy.pca.tert}
+pca.tert.eig <- tidy(input.tert.pca, "variables")
+pca.tert.eig <- spread(pca.tert.eig, key = PC, value = value) %>%
+  select(1:4)
+pca.tert.au <- augment(input.tert.pca, data = input.tert)
+
+pca.tert.eig
+```
+
+The PCA1 describes the calcium carbonate gradient.
+
 ```{r biplot}
 
-p1 <- autoplot(wine.all.pca, data = wine.raw, shape = "class") +
+p1 <- autoplot(input.pca, data = input, shape = "class",  
+                 loadings = TRUE, loadings.label = TRUE) +
   theme_tufte() +
-  ggtitle("Ordinate Plot of Wines - All Data") +
+  ggtitle("Ordinate Plot Anions and Cations - All Data") +
   theme(legend.position = "none")
 
-p2 <- autoplot(wine.outrm.pca, data = wine.outrm, shape = "class") +
+p2 <- autoplot(input.tert.pca, data = input.tert, shape = "class",  
+                 loadings = TRUE, loadings.label = TRUE) +
   theme_tufte() +
   ggtitle("Ordinate Plot of Wines - Outlier Removed") +
   theme(legend.position = "none")
 
 grid.arrange(p1, p2, ncol = 2)
+
+p2
 ```
 
-The shape of the ordination diagram is indicitive of the distortion caused by interpreting data that does not meet linearity assumptions using PCA.  However, the strong outlier does not look as if it affects the ordination.
-
-```{r}
-autoplot(wine.all.pca, data = wine.raw, shape = "class", loadings = TRUE, loadings.label = TRUE) +
-  theme_tufte() +
-  ggtitle("Ordinate Plot of Wines") +
-  theme(legend.position = "none")
-```
+ the strong outlier does not look as if it affects the ordination.
 
 The first PCA axis describes samples with high concentrations of flavanoids, total phenols, and proanthocyanins and a highod280 to od315 ratio on one end of the gradient and samples with high concentrations of nonflavanoid phenols and ash alkalinity at the other end of the gradient.  The second PCA axis describes a gradient of increasing to decreasing color intensity, alcohol content, ash, proline, and magnesium.  The third PCA axis, not shown, describes high to low concentrations of ash and ash alkalinity.  The factors that might best describe differences among cultivars are: class 1 is described by low PCA1, meaning high flavanoid, total phenol, proanthocyanin, and od280_od315 values, class 2 is described by low color intensity, alcohol content, ash, proline, and magnesium values, class 3 is described by 
 high values of malic acid, nonflavanoid phenols and ash alkalinity. 
