@@ -77,6 +77,7 @@ A commonly used approach to handle missing values is to replace the missing valu
 #
 # Prior to running it is probably a good idea to install these packages
 # and update your other packages.
+library(MASS)       # for quadratic discriminant analysis
 library(stringr)    # string tools
 library(janitor)    # quick tools for cleaning up var names
 library(broom)      # tidies up output 
@@ -93,7 +94,7 @@ library(AID) # Estimation of Box-Cox Power Trans. Parameter
                     #   of data manipulation and visualisation.
 library(GGally)     # extends 'ggplot2' functionality; 'ggpairs'
 library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
-library(MASS)       # for quadratic discriminant analysis
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # decision tree packages
 # library(rpart)
@@ -108,7 +109,7 @@ library(MASS)       # for quadratic discriminant analysis
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # spatial data packages
 #
-# library(ggmap)       # comes with a nice theme_nothing() function
+library(ggmap)       # comes with a nice theme_nothing() function
 # library(sp)         # classes for spatial data
 # library(raster)     # grids, rasters
 # library(rasterVis)  # raster visualisation
@@ -133,8 +134,6 @@ library(MASS)       # for quadratic discriminant analysis
 # rvest               # webpage scraper
 # xml2                # parse XML
 
-
-#library(DAAG)
 
 
 
@@ -2158,8 +2157,9 @@ input <- clean2 %>%
 ```
 
 ```{r pairs.plot.untransformed.data}
-# ggpairs(input, title = "Major Anions and Cations - Untransformed Data") +
-#  theme_tufte()
+ggpairs(input, title = "Major Anions and Cations - Untransformed Data") +
+  theme_tufte()
+#ggsave("pairs-unT.png")
 ```
 
 ## Check best transformations for variables
@@ -2272,12 +2272,12 @@ rm(lambda.val,input.tr)
 ```
 
 ```{r pairs.plot2}
-#ggpairs(input.sc, title = "Major Anions and Cations - Transformed Data") +
-#  theme_tufte()
+ggpairs(input.sc, title = "Major Anions and Cations - Transformed Data") +
+  theme_tufte()
+#ggsave("pairs-Tr.png")
 ```
 
-The results of the box-cox transformation indicates the data does not meet normality assumptions. Wounded Knee Creek 1 has very low magnesium values
-
+The results of the box-cox transformation indicates the data does not meet normality assumptions. 
 
 ```{r multivar.tests.Mardia}
 ###mardiaTest(input, qqplot = TRUE)
@@ -2322,9 +2322,10 @@ ggplot(eigdecomp.all, aes(rowname,values)) +
        y = "Eigenvector magnitude", x = "")
 
 rm(cormat.all)
+#ggsave("scree_pca.png")
 ```
 
-The first screeplot indicates the first three principal components are relevant and explain about 70% of the variance.  The second scree plot indicates the first four principal components are relevant and explain about 77% of the variance of the data.
+The first screeplot indicates the first three principal components are relevant and explain about 77% of the variance.  
 
 ```{r tidy.pca}
 # tidy up the pca with 'broom'
@@ -2339,7 +2340,7 @@ pca.all.eig
 PCA 1 describes a gradient from high conductivity and low carbonate waters to low conductivity high carbonate waters.  PCA2 describes a gradient from low to high calcium waters.  PCA3 describes a gradent from low to high fluorite.
 
 
-```{r biplot}
+```{r interpret.pca}
 # add back in factors
 pca1.interp <- pca.all.au %>%
   mutate(.rownames = as.character(.rownames)) %>%
@@ -2371,16 +2372,16 @@ pca1.interp <- pca1.interp %>%
         if_else(.fittedPC3 < -1.25, "Tabl_LoF",
           if_else(.fittedPC1 < -0.5, "Tabl_LoHCO3",
              "Other")))))) %>%
-  mutate(group_fin = str_c(group, ecoregion, sep = "_")) %>%
-  mutate(group_fin = 
-    if_else(group_fin == "Badl_E_BadLand", "Badl_E",
-      if_else(group_fin == "Badl_W_BadLand", "Badl_W",
-        if_else(group_fin == "CheyRiv_CheyRiv", "CheyRiv", 
-            if_else(group_fin == "Other_TabLand", "Tbl_Othr", 
-              if_else(group_fin == "Tabl_LoHCO3_TabLand", "Tbl_loHCO3", 
-                if_else(group_fin == "Tabl_LoF_TabLand", "Tbl_loF", 
+  mutate(final = str_c(group, ecoregion, sep = "_")) %>%
+  mutate(final = 
+    if_else(final == "Badl_E_BadLand", "Badl_E",
+      if_else(final == "Badl_W_BadLand", "Badl_W",
+        if_else(final == "CheyRiv_CheyRiv", "CheyRiv", 
+            if_else(final == "Other_TabLand", "Tbl_Othr", 
+              if_else(final == "Tabl_LoHCO3_TabLand", "Tbl_loHCO3", 
+                if_else(final == "Tabl_LoF_TabLand", "Tbl_loF", 
                    "SandH"))))))) %>%
-  mutate(group_fin = as.factor(group_fin)) 
+  mutate(final = as.factor(final)) 
 
 
 pca1.interp.sub <- pca1.interp %>%
@@ -2388,58 +2389,133 @@ pca1.interp.sub <- pca1.interp %>%
   filter(ecoregion != "CheyRiv")
 ```
 
-
+```{r plot.pca.axes}
+autoplot(input.pca, data = pca1.interp, shape = "ecoregion",
+                 loadings = TRUE, loadings.label = TRUE) +
+  ggtitle("Ordinate Plot Anions and Cations by Ecoregion") +
+  scale_y_reverse() +
+  xlab("Inc. HCO3 ions (54% of var.) ->") +
+  ylab("Inc. Ca ions (13% of var.) ->") +
+  theme_tufte() +
+  theme(legend.position = "bottom")
+#ggsave("ordinate_plot.png")
+```
 
 
 ```{r plot.results}
-
-
-
 p1 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC2)) +
   geom_point(aes(shape = group, color = group)) +
   theme_tufte() +
   scale_y_reverse() +
-  xlab("Inc. HCO3 ions ->") +
-  ylab("Inc. Ca ions ->") 
+  xlab("Inc. HCO3 ions (54% of var.) ->") +
+  ylab("Inc. Ca ions (13%) ->") +
+  ggtitle("Interpretation of PCA Results for PRR Stream Water Chemistry",
+          subtitle = "The lower right panel shows a detail of the group 'Other' shown in the other panels") +
+  theme(legend.position = "none")
  
 p2 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC3)) +
   geom_point(aes(shape = group, color = group)) +
   theme_tufte() +
-  xlab("Inc. HCO3 ions ->") + 
-  ylab("Inc F ions ->")
+  xlab("Inc. HCO3 ions (54% of var.) ->") + 
+  ylab("Inc F ions (10%) ->") +
+  ggtitle("") +
+  theme(legend.position = "none")
 
 p3 <- ggplot(pca1.interp, aes(.fittedPC3, .fittedPC2)) +
   geom_point(aes(shape = group, color = group)) +
   theme_tufte() +
   scale_y_reverse() +
-  ylab("Inc. Ca ions ->") +
-  xlab("Inc F ions ->")
-
+  ylab("Inc. Ca ions (13%) ->") +
+  xlab("Inc F ions (10% of var.) ->") +
+  theme(legend.position = "bottom")
+  
 p4 <- ggplot(pca1.interp.sub, aes(.fittedPC1, .fittedPC3)) +
-  geom_point(aes(shape = group_fin, color = group_fin)) +
+  geom_point(aes(shape = final, color = final)) +
   theme_tufte() +
   scale_y_reverse() +
-  ylab("Inc. Ca ions ->") +
-  xlab("Inc F ions ->")
-
-#p0 <- autoplot(input.pca, data = pca1.interp, shape = "ecoregion",  
-#                 loadings = TRUE, loadings.label = TRUE) +
-#  theme_tufte() +
-#  ggtitle("Ordinate Plot Anions and Cations - All Data") +
-#  theme(legend.position = "none")
+  ylab("Inc. HCO3 ions (54%) ->") +
+  xlab("Inc F ions (10% of var.) ->") +
+  theme(legend.position = "bottom") 
 
 grid.arrange(p1,p2,p3,p4, nrow = 2)
+#ggsave("pca_results.png")
 ```
 
 
+```{r map.results.prior}
+# found some errors on the table
+map <- clean2 %>%
+  mutate(latitude = if_else(samp_site == "CHR1", 43.66, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "CHR2", 43.67, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "BEL2", 43.66493, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "LWR4", 43.17, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "COR1", 43.4, latitude)) %>%
+  mutate(longitude = -1* longitude)
+# Need to change BUZ1 to subws == "WhP"
 
-```{r phase2}
-# This is for a water resources report report
-phase2 <- cleaned %>%
-  filter(year > 2007) %>%
-   mutate(year = as.factor(year))
+# get a map from Google Maps
+map1 <- suppressMessages(
+  get_map(location = c(-102.1, 43.3206149), zoom = 9,
+  maptype="terrain")) 
+
+ggmap(map1) + 
+  geom_point(aes(x = longitude, y = latitude, shape = ecoregion,
+                 color = subws), data = map, size = 4) +
+  theme_tufte() +
+  ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+          subtitle = "Southwestern South Dakota") +
+  theme(legend.position = "right")
+# ggsave("map.prior.png")
 ```
 
+
+```{r map.results.postier}
+locs <- map %>%
+  select(latitude, longitude, samp_site) %>%
+  distinct(samp_site, latitude, longitude) %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "LCC1") %>%
+  filter(samp_site != "MER2") %>%
+  filter(samp_site != "MER4") %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WHR5") %>%
+  filter(samp_site != "WOK_Lagoon") %>%
+  mutate(samp_site = as.factor(samp_site))
+
+pca1.interp.map <- left_join(pca1.interp, locs)
+  
+pca1.interp.map <- pca1.interp.map %>%
+  mutate(samp_site = as.factor(samp_site))
+
+
+
+ggmap(map1) + 
+  geom_point(aes(x = longitude, y = latitude, shape = final,
+                 color = final), data = pca1.interp.map, size = 4) +
+  theme_tufte() +
+  ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+          subtitle = "Southwestern South Dakota") +
+  theme(legend.position = "right")
+
+# group by samp_site and summarize
+pca.gp.map <- pca1.interp.map %>%
+  group_by(samp_site) %>%
+#  summarize(mean(ph))
+
+
+p5 <- ggplot(map, aes(longitude, latitude)) +
+  geom_point(size = 2.5, aes(shape = ecoregion, color = subws)) +
+  theme_tufte() +
+  scale_x_reverse() +
+  ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+          subtitle = "Southwestern South Dakota") +
+  theme(legend.position = "right")
+ 
+p5
+
+```
 
 ## 1.0	Background
 The Oglala Sioux Tribe (OST) Water Pollution Control Program is responsible for assessing non-point source impacts to streams and developing watershed protection plans to characterize impacts to water quality and to identify and implement best management practices to restore water quality.  The Oglala Lakota College (OLC)Science Technology Engineering and Mathematics (STEM) Department staff began partnering with the Tribe in 2011 to: 1) analyze and complare water quality data collected by the Oglala Sioux Tribe (OST) Water Quality Program historically from 1993-2011, and for 2012-2013, 2) integrate macroinvertebrate sampling data collected historically from 1993-2011 are for 2012-2013, and to 3) to refine recommendations for future monitoring and implementation of best management practices (BMPs). 
@@ -2458,5 +2534,6 @@ The amount and frequency of hydrological exchange between the floodplain, ground
 map1 <- suppressMessages(
   get_map(location = c(-101.8, 43.3206149), zoom = 8,
   maptype="roadmap")) 
-ggmap(map1)
+ggmap(map1) +
+  
 ```
