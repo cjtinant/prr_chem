@@ -93,9 +93,10 @@ library(AID) # Estimation of Box-Cox Power Trans. Parameter
                     #   of data manipulation and visualisation.
 library(GGally)     # extends 'ggplot2' functionality; 'ggpairs'
 library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
+library(MASS)       # for quadratic discriminant analysis
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # decision tree packages
-library(rpart)
+# library(rpart)
 #library(rpart.plot) # Nicer plot of decision tree
 #library(rattle)
 #library(RColorBrewer)
@@ -132,7 +133,7 @@ library(rpart)
 # rvest               # webpage scraper
 # xml2                # parse XML
 
-#library(MASS)
+
 #library(DAAG)
 
 
@@ -2365,22 +2366,26 @@ pca1.interp <- pca1.interp %>%
   mutate(catchment = str_c(subws, ecoregion, sep = "_")) %>%
   mutate(samp_site = as.factor(samp_site)) %>%
   mutate(group = if_else(.fittedPC1 < -4, "CheyRiv",
-                         if_else(.fittedPC2 > 1.8, "Badl W. ",
-                                 if_else(ecoregion == "BadLand", "Badl E.",
-                                           if_else(.fittedPC3 < -1.25, "Tabl LoF",
-                                                if_else(.fittedPC1 < -0.5, "Tabl LoHCO3",   
-                                         "Other"))))))
+    if_else(.fittedPC2 > 1.8, "Badl_W",
+      if_else(ecoregion == "BadLand", "Badl_E",
+        if_else(.fittedPC3 < -1.25, "Tabl_LoF",
+          if_else(.fittedPC1 < -0.5, "Tabl_LoHCO3",
+             "Other")))))) %>%
+  mutate(group_fin = str_c(group, ecoregion, sep = "_")) %>%
+  mutate(group_fin = 
+    if_else(group_fin == "Badl_E_BadLand", "Badl_E",
+      if_else(group_fin == "Badl_W_BadLand", "Badl_W",
+        if_else(group_fin == "CheyRiv_CheyRiv", "CheyRiv", 
+            if_else(group_fin == "Other_TabLand", "Tbl_Othr", 
+              if_else(group_fin == "Tabl_LoHCO3_TabLand", "Tbl_loHCO3", 
+                if_else(group_fin == "Tabl_LoF_TabLand", "Tbl_loF", 
+                   "SandH"))))))) %>%
+  mutate(group_fin = as.factor(group_fin)) 
 
 
-test <- pca1.interp %>%
-  filter(group == "Other")
-ggplot(test, aes(samp_site,.fittedPC3)) +
-  geom_boxplot()
-```
-
-```{r}
-brain.rpart <- rpart(clinically.important.brain.injury ~ age.65 + amnesia.before + basal.skull.fracture + GCS.decrease + GCS.13 + GCS.15.2hours + high.risk + loss.of.consciousness + open.skull.fracture + vomiting, data = head.injury)
-fancyRpartPlot(brain.rpart)
+pca1.interp.sub <- pca1.interp %>%
+  filter(ecoregion != "BadLand") %>%
+  filter(ecoregion != "CheyRiv")
 ```
 
 
@@ -2388,33 +2393,42 @@ fancyRpartPlot(brain.rpart)
 
 ```{r plot.results}
 
-p1 <- autoplot(input.pca, data = pca1.interp, shape = "ecoregion",  
-                 loadings = TRUE, loadings.label = TRUE) +
-  theme_tufte() +
-  ggtitle("Ordinate Plot Anions and Cations - All Data") +
-  theme(legend.position = "none")
 
-p2 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC2)) +
+
+p1 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC2)) +
   geom_point(aes(shape = group, color = group)) +
   theme_tufte() +
   scale_y_reverse() +
   xlab("Inc. HCO3 ions ->") +
   ylab("Inc. Ca ions ->") 
  
-p3 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC3)) +
+p2 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC3)) +
   geom_point(aes(shape = group, color = group)) +
   theme_tufte() +
   xlab("Inc. HCO3 ions ->") + 
   ylab("Inc F ions ->")
 
-p4 <- ggplot(pca1.interp, aes(.fittedPC3, .fittedPC2)) +
+p3 <- ggplot(pca1.interp, aes(.fittedPC3, .fittedPC2)) +
   geom_point(aes(shape = group, color = group)) +
   theme_tufte() +
   scale_y_reverse() +
   ylab("Inc. Ca ions ->") +
   xlab("Inc F ions ->")
 
-grid.arrange(p2,p3,p4, nrow = 2)
+p4 <- ggplot(pca1.interp.sub, aes(.fittedPC1, .fittedPC3)) +
+  geom_point(aes(shape = group_fin, color = group_fin)) +
+  theme_tufte() +
+  scale_y_reverse() +
+  ylab("Inc. Ca ions ->") +
+  xlab("Inc F ions ->")
+
+#p0 <- autoplot(input.pca, data = pca1.interp, shape = "ecoregion",  
+#                 loadings = TRUE, loadings.label = TRUE) +
+#  theme_tufte() +
+#  ggtitle("Ordinate Plot Anions and Cations - All Data") +
+#  theme(legend.position = "none")
+
+grid.arrange(p1,p2,p3,p4, nrow = 2)
 ```
 
 
@@ -2432,6 +2446,7 @@ The Oglala Sioux Tribe (OST) Water Pollution Control Program is responsible for 
 
 ## 1.1	Regional Climate and Geology 
 The climate is typical of the Northern Great Plains with a median temperature of 50F in January and 73 degrees F in July (SDSU climate website, accessed March 6, 2013).  The average annual precipitation between the years 1971 and 2000 at the Manderson 3 NE station is 19.3 inches with January as the driest month (0.39 inches) and June as the wettest month (3.18 inches).  The Manderson station is slightly drier than the rest of the south-central region of South Dakota, which has an average precipitation of 21.6 +/- 4.5 inches (standard deviation) (SDSU climate website, accessed March 6, 2013).  The Keya Paha Tablelands receives a mean annual precipitation of 16-20 inches while the Pine Ridge Escarpment receives 16-17 inches (Bryce et al, 1998).  The Great Plains has an historical record of major drought (Meyer et al. 1999).  The 2012 drought resulted in zero flow conditions in the White River and a majority of White River tributary streams (Tinant personal observation).  
+
 The amount and frequency of hydrological exchange between the floodplain, groundwater and the stream depends on geology and alluvial composition. Upper White River tributaries begin in central Nebraska as springs. Middle White River tributaries begin in Arikaree Group sandstones and siltstones, and then flow across White River Group volcaniclastic claystones, before draining into the White River (Bryce et al. 1998, Heakin 1999). Sandier units of the Arikaree group form water table aquifers that sustain base flow in the upper reaches of White River tributaries (Heaken 1999).  The hydrologic regime shifts from a mixed flow regime to an event-dominated regime as streams cross the Arikaree Group – White River Group contact as infiltration rates decrease and the volume of overland flow increases (Foreman 2006).   Infiltration, percolation and ground water flow dominates Sandhills ecoregion hydrology in the Little White River watershed.  
 
 
