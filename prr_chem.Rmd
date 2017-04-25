@@ -4,7 +4,7 @@ author: "Charles Jason Tinant"
 date: "4/11/2017"
 output: pdf_document
 ---
-TEST 3
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
@@ -2134,7 +2134,9 @@ input <- clean2 %>%
   mutate(na_meq = na_meq + 0.01) %>%
   mutate(cl_meq = cl_meq + 0.01) %>%
   mutate(so4_meq = so4_meq + 0.01) %>%
-  column_to_rownames(var = "newcol")
+  column_to_rownames(var = "newcol") %>%
+  select(-latitude) %>%
+  select(-longitude)
 ```
 
 ```{r pairs.plot.untransformed.data}
@@ -2145,7 +2147,7 @@ ggpairs(input, title = "Major Anions and Cations - Untransformed Data") +
 ## Check best transformations for variables
 We found the best transformations using an artificial covariate method to estimate the Box-Cox power transformation parameter.  #Several variables are still not normally distributed.#  Following transformation the data were scaled and centered.
 
-```{r box.cox}
+```{r box.cox.all}
 # The goal is to calculate box cox power transform parameters and 
 # create dataframes to combine using cbind
 #
@@ -2248,7 +2250,9 @@ input.sc <- as.data.frame(scale(input.sc, center = TRUE, scale = TRUE))
 
 rm(ca, cl, f, k, mg, na, so4, ca.df, ca_mg_rat, ca_mg_rat.df, 
    cl.df, f.df, k.df, mg.df, na.df, so4.df, hco3, hco3.df)
+```
 
+```{r pairs.plot2}
 ggpairs(input.sc, title = "Major Anions and Cations - Transformed Data") +
   theme_tufte()
 ```
@@ -2274,94 +2278,47 @@ input.tert <- clean2 %>%
   mutate(newcol = str_c(samp_site, sort, sep = "_")) %>%
   select(-samp_site) %>%
   na.omit(latitude) %>%
-  select(-sort)
+  select(-sort) %>%
+  mutate(na_meq = na_meq + 0.01) %>%
+  mutate(cl_meq = cl_meq + 0.01) %>%
+  mutate(so4_meq = so4_meq + 0.01) %>%
+  column_to_rownames(var = "newcol")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # calcium
 ca <- boxcoxnc(input.tert$ca_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
 ca.df <- as.data.frame(ca$lambda.hat) 
-#  Box-Cox Power Transformation 
-#  data : input.tert$ca_meq 
-#  lambda.hat : 0.25 
-#  p.value    : 7.127511e-29 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # magnesium
 mg <- boxcoxnc(input.tert$mg_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = TRUE) 
 mg.df <- as.data.frame(mg$lambda.hat) 
-#   Box-Cox Power Transformation 
-#  data : input.tert$mg_meq 
-#  lambda.hat : -1.85 
-#  p.value    : 2.72284e-34 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # sodium
-# have a couple of zero values for na that need to be positive
-input.tert <- input.tert %>%
-  mutate(na_meq = na_meq + 0.01)
-
 na <- boxcoxnc(input.tert$na_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
 na.df <- as.data.frame(na$lambda.hat) 
-
-#  Box-Cox Power Transformation 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  data : input.tert$na_meq 
-#  lambda.hat : 0.26 
-#  p.value    : 0.000193715 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # potassium
 k <- boxcoxnc(input.tert$k_meq, method = "sw", lam = seq(-3,3,0.01), 
                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
 k.df <- as.data.frame(k$lambda.hat) 
-
-#  Box-Cox Power Transformation 
-#  data : input.tert$k_meq 
-#  lambda.hat : 1.3 
-#  p.value    : 1.487123e-23 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # chloride
-# have a couple of zero values for cl that need to be positive
-input.tert <- input.tert %>%
-  mutate(cl_meq = cl_meq + 0.01)
-
 cl <- boxcoxnc(input.tert$cl_meq, method = "sw", lam = seq(-3,3,0.01), 
                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
 cl.df <- as.data.frame(cl$lambda.hat) 
-
-# Box-Cox Power Transformation 
-#  data : input.tert$cl_meq 
-#  lambda.hat : 0 
-#  p.value    : 3.201819e-16 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 # fluoride
 f <- boxcoxnc(input.tert$f_meq, method = "sw", lam = seq(-3,3,0.01), 
                  plotit = FALSE, alpha = 0.05, verbose = FALSE) 
 f.df <- as.data.frame(f$lambda.hat) 
-
-#  Box-Cox Power Transformation 
-#  data : input.tert$f_meq 
-# lambda.hat : 0.5 
-#  p.value    : 6.858415e-17 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 # sulfate
-# have a couple of zero values for so4 that need to be positive
-input.tert <- input.tert %>%
-  mutate(so4_meq = so4_meq + 0.01)
-
 so4 <- boxcoxnc(input.tert$so4_meq, method = "sw", lam = seq(-3,3,0.01), 
                  plotit = FALSE, alpha = 0.05, verbose = TRUE) 
 so4.df <- as.data.frame(so4$lambda.hat) 
-#  data : input.tert$so4_meq 
-#  lambda.hat : -0.05 
-#  p.value    : 2.64334e-16 
-#  Result     : Transformed data are not normal. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 # ratio of calcium to magnesium
 ca_mg_rat <- boxcoxnc(input.tert$ca_mg_rat, method = "sw", lam = seq(-3,3,0.01), 
@@ -2385,6 +2342,7 @@ lambda.val <- as.data.frame(lambda.val) %>%
 
 # transform the input.tert data to approach normal
 input.tert.tr <-input.tert %>%
+  rownames_to_column("newcol") %>%
   mutate(ca_meq = (ca_meq^ca$lambda.hat-1)/ca$lambda.hat) %>%
   mutate(mg_meq = (mg_meq^mg$lambda.hat-1)/mg$lambda.hat) %>%
   mutate(na_meq = (na_meq^na$lambda.hat-1)/na$lambda.hat) %>%
@@ -2395,13 +2353,16 @@ input.tert.tr <-input.tert %>%
   mutate(ca_mg_rat = (ca_mg_rat^ca_mg_rat$lambda.hat-1)/ca_mg_rat$lambda.hat) 
          
 rm(ca, ca_mg_rat, cl, f, k, mg, na, so4)
-rm(ca.df, ca_mg_rat, cl.df, f.df, k.df, mg.df, na.df, so4.df)
+rm(ca.df, ca_mg_rat.df, cl.df, f.df, k.df, mg.df, na.df, so4.df)
 
 # The scale() function centers and scales the data
 input.tert.sc <- input.tert.tr %>%
   column_to_rownames(var = "newcol")
 input.tert.sc <- as.data.frame(scale(input.tert.sc, center = TRUE, scale = TRUE))
+```
 
+
+```{r pairs.plot.noChR}
 ggpairs(input.sc, title = "Transformed Major Anions and Cations - No ChRiv") +
   theme_tufte()
 ```
@@ -2413,26 +2374,25 @@ ggpairs(input.sc, title = "Transformed Major Anions and Cations - No ChRiv") +
 ```
 
 ```{r multivar.tests.Mardia}
-#mardiaTest(input.tert.sc, qqplot = TRUE)
+# mardiaTest(input.tert.sc, qqplot = TRUE)
 ```
 
 ## Multivariate Test of Box Cox Transformed Tertiary Age Watersheds
 
 Even with the outlier removed some caution in interpreting PCA axes is advised, as the assumption of normality is violated.  
 
-
 An indication of violation of ###multivariate linearity is a horse-shoe shaped arch in the ordination space (McCune and ###Grace 2002).
 
 The summary tables below summarizes the results of PCA of transformed wine data using all of the observations and with the multivariate outlier removed.
 
-### PCA Results: transformed wine data using all observations.
+### PCA Results: All Observations.
 ```{r pca.all}
 # conduct a pca using all of the data
-
 input.pca <- prcomp(input.sc, scale = TRUE, center = TRUE) 
 summary(input.pca)
 ```
 
+### PCA Results: Cheyenne River Stations Removed
 ```{r pca.tert}
 # conduct a pca using the data with Cheyenne River removed
 input.tert.pca <- prcomp(input.tert.sc, scale = TRUE, center = TRUE) 
@@ -2477,8 +2437,7 @@ s2 <- ggplot(eigdecomp.tert, aes(rowname,values)) +
 grid.arrange(s1, s2, ncol = 2)
 ```
 
-The screeplots indicate the four principal components are relevant and explain about 80% of the variance of the data.
-
+The first screeplot indicates the first three principal components are relevant and explain about 70% of the variance.  The second scree plot indicates the first four principal components are relevant and explain about 80% of the variance of the data.
 
 ```{r tidy.pca}
 pca.all.eig <- tidy(input.pca, "variables")
@@ -2505,7 +2464,7 @@ The PCA1 describes the calcium carbonate gradient.
 
 ```{r biplot}
 
-p1 <- autoplot(input.pca, data = input, shape = "class",  
+p1 <- autoplot(input.pca, data = pca1.interp, shape = "group1",  
                  loadings = TRUE, loadings.label = TRUE) +
   theme_tufte() +
   ggtitle("Ordinate Plot Anions and Cations - All Data") +
@@ -2518,11 +2477,129 @@ p2 <- autoplot(input.tert.pca, data = input.tert, shape = "class",
   theme(legend.position = "none")
 
 grid.arrange(p1, p2, ncol = 2)
-
-p2
+p1
 ```
 
- the strong outlier does not look as if it affects the ordination.
+```{r interpret.pca}
+pca1.interp <- pca.all.au %>%
+  mutate(.rownames = as.character(.rownames)) %>%
+  separate(.rownames, c("samp_site", "sort")) %>%
+  mutate(sort = as.integer(sort)) %>%
+  mutate(samp_site = as.factor(samp_site)) 
+
+pca2.interp <- pca.tert.au %>%
+  mutate(.rownames = as.character(.rownames)) %>%
+  separate(.rownames, c("samp_site", "sort")) %>%
+  mutate(sort = as.integer(sort)) %>%
+  mutate(samp_site = as.factor(samp_site)) 
+
+factor2 <- clean2 %>%
+  select(samp_site, ecoregion, subws) %>%
+  distinct(samp_site, ecoregion, subws) %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "CHR1") %>%
+  filter(samp_site != "CHR2") %>%
+  filter(samp_site != "LCC1") %>%
+  filter(samp_site != "MER2") %>%
+  filter(samp_site != "MER4") %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WHR5") %>%
+  filter(samp_site != "WOK_Lagoon") 
+
+factor1 <- clean2 %>%
+  select(samp_site, ecoregion, subws) %>%
+  distinct(samp_site, ecoregion, subws) %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "LCC1") %>%
+  filter(samp_site != "MER2") %>%
+  filter(samp_site != "MER4") %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WHR5") %>%
+  filter(samp_site != "WOK_Lagoon") 
+              
+pca1.interp <- left_join(pca1.interp, factor1, by="samp_site")
+pca2.interp <- left_join(pca2.interp, factor2, by="samp_site")
+rm(factor1,factor2)
+
+pca1.interp <- pca1.interp %>%
+  mutate(catchment = str_c(subws, ecoregion, sep = "_")) %>%
+  mutate(samp_site = as.factor(samp_site)) %>%
+  mutate(group = if_else(.fittedPC1 < -4, "CheyRiv",
+                         if_else(.fittedPC2 > 1.8, "group2", "group3")))
+
+test <- pca1.interp %>%
+  filter(ecoregion == "BadLand")
+
+#mutate(subws = 
+#   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
+#     samp_site == "WCC3" | samp_site == "WOL1" |
+#     samp_site == "WHR1" | samp_site == "WCC_Lagoon", 
+#     "WhU",
+#       if_else(samp_site == "POR1" | samp_site == "POR2" |
+##         samp_site == "POR3" | samp_site == "POR_Lagoon" | 
+#         samp_site == "WOK1" | samp_site == "WOK2" |
+##         samp_site == "WOK3" | samp_site == "WOK4" |
+#         samp_site == "WOK_Lagoon" | samp_site == "WHR2",
+#         "WhW", 
+#            if_else(samp_site =="AMH1" | samp_site == "RED1" |
+#              samp_site == "MER1" | samp_site == "MER2" |
+#              samp_site == "MER3" | samp_site == "MER4" |
+#              samp_site == "NFL1" | samp_site == "WHR3",
+#              "WhM",
+#                 if_else(samp_site == "BEA1" | samp_site == "BEA2" |
+#                    samp_site == "BEA3" | samp_site == "BEL1" |
+#                    samp_site == "BEL2" | samp_site == "BEL_USGS" |
+#                    samp_site == "LOD1" | samp_site == "COR1" |
+#                    samp_site == "EAN1" | samp_site == "EAN2" | 
+#                    samp_site == "WHR5" | samp_site == "POT1" |
+#                    samp_site == "LON1" | samp_site == "CRA1" |
+ #                   samp_site == "BUZ1" | samp_site == "RED1",
+#                    "WhB", 
+#                       if_else(samp_site == "LCC1" | samp_site == "WHR4" |
+#                         samp_site == "PAS1" | samp_site == "PAS2" |
+#                         samp_site == "PAS3" | samp_site == "PAS4" |
+#                         samp_site == "BLP1" | samp_site == "BLP2",
+#                         "WhP", 
+#                            if_else(samp_site == "CHR1" |
+#                                    samp_site == "CHR2", "ChR", 
+ #                                   "LWR" ))))))) 
+
+#factor2 <- data_frame(samp_site=c("AMH1", "BEA1", "BEA2", "BEA3", "BEL1",
+#                                  "BEL2", "BLP1", "BLP2", "BUZ1", "COR1",
+#                                  "CRA1", "EAN1", "EAN2", "LOD1", "LON1",
+#                                  "LWR1", "LWR2", "LWR3", "LWR4", "MER1",
+#                                  "MER3", "NFL1", "PAS1", "PAS2", "PAS3", 
+#                                  "POR1", "POR2"POR3 POT1 RED1 WCC1 WCC2 
+# WCC3 WHR1 WHR2 WHR3 WHR4 WOK1 WOK2 WOK3 WOK4 
+
+
+
+
+
+```
+
+```{r}
+s1 <- ggplot(pca1.interp, aes(.fittedPC1, .fittedPC2)) +
+  geom_point(aes(shape = group1)) +
+  theme_tufte()
+
+
+
+```
+
+```{r}
+s1 <- ggplot(pca.interp, aes(ecoregion, .fittedPC1)) +
+  facet_wrap(~subws) +
+  geom_boxplot() +
+  theme_tufte()
+
+```
+
+
 
 The first PCA axis describes samples with high concentrations of flavanoids, total phenols, and proanthocyanins and a highod280 to od315 ratio on one end of the gradient and samples with high concentrations of nonflavanoid phenols and ash alkalinity at the other end of the gradient.  The second PCA axis describes a gradient of increasing to decreasing color intensity, alcohol content, ash, proline, and magnesium.  The third PCA axis, not shown, describes high to low concentrations of ash and ash alkalinity.  The factors that might best describe differences among cultivars are: class 1 is described by low PCA1, meaning high flavanoid, total phenol, proanthocyanin, and od280_od315 values, class 2 is described by low color intensity, alcohol content, ash, proline, and magnesium values, class 3 is described by 
 high values of malic acid, nonflavanoid phenols and ash alkalinity. 
