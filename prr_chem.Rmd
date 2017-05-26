@@ -8,11 +8,12 @@ output: pdf_document
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 
-# This project is shared on Github and via Google Drive
-
+# This project is shared on Github
+# 
+# 
 # Suggested Project Folder Setup 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# The project has a folder with the following structure:
+# The project will be a folder with the following structure:
 # R          - contains scripts
 # Data       - contains the raw data, after the start of the project,
 #              this folder should be locked from editing
@@ -22,39 +23,6 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 #              through an literate programming, such as Sweave or R 
 #              Markdown.
 #
-# Project Assignment
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Project 2: Find a different data set on the internet that lends
-# itself to analysis based on one of the data analysis methods we 
-# have covered in chapters 6, 8,11, or 12. After clearly formulating 
-# a research hypothesis, use one of the methods to answer your research 
-# hypothesis.
-#
-# Deliverables 1: Write up a summary of your findings. The summary 
-# must be a minimum of 3 typed pages (times new roman 12pt font). Your 
-# summary may be longer if you have lots of graphics. The goal is to 
-# not to have too many pages, include only as many pages as you need 
-# to get your point across.
-#
-# Deliverables 2: You must present your paper in front of the entire 
-# class. Each presentation should be relatively short ~ 5-7 minutes 
-# each.
-#
-# You will receive one combined grade for your presentation and paper. 
-# The grading criteria will be based on the following:
-#  a. Background on your data. Why should I care?
-#  b.  How was the data collected? Was it experimental or observational
-#      data? What types of randomization are involved: 
-#              (1) Random sampling or (2) Random group assignment.
-#  c. Summary of the relevant variables. This may done either with 
-# numerical or graphical summaries or possibly both.
-#  d. Clearly state your research hypothesis and goals associated with
-#     the research.
-#  e. Clearly state the method you will use to answer your research
-#     hypothesis and why this method will allow you to meet the goals of 
-#     your research.
-#  f. Quality of writing and presentation slides.
-#  g. Quality of verbal presentation.
 #
 ```
 
@@ -389,6 +357,8 @@ cleaner <- raw %>%
 # Fix incorrect latitude
 cleaner <- cleaner %>%
   mutate(latitude = if_else(samp_site == "POR1", 43.23253, latitude))
+
+rm(raw)
 ```
 
 ```{r munge.data.clean}
@@ -455,6 +425,8 @@ clean <- clean %>%
 # nate:         nitrate, mg/L, major anion; numeric
 # op:           orthophosphorus, major anion; numeric
 # the rest of the vars are trace metals
+
+rm(cleaner)
 ```
 
 ```{r validate.variables}
@@ -462,19 +434,12 @@ clean <- clean %>%
 # not always calculated by technicians.  For this reason pH has a wide
 # spread.  The data below should be updated given the removal of 69, 99, 632
 #
-# ph
+# ph summary
 # summary(clean$ph)
 #  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 #  0.000   8.020   8.340   8.308   8.650  12.800     304 
 
-# group by year and summarize conduct
-# by_year_ph <- clean %>%
-#  filter(ph != is.na(ph)) %>%
-#  group_by(year) %>%
-#  summarize(mean(ph))
-
 # summary(by_year_ph)
-
 # mean(ph_year)    
 # Min.   :7.682  
 # 1st Qu.:8.051  
@@ -482,7 +447,6 @@ clean <- clean %>%
 # Mean   :8.281  
 # 3rd Qu.:8.407  
 # Max.   :9.406  - this is 1996
-
 # Remove 1996 from samples
 
 clean <- clean %>%
@@ -522,532 +486,6 @@ clean <- clean %>%
 
 #rm(by_site_ph, by_year_ph, by_ecoreg_ph)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# conductivity
-#
-# summary(clean$cond)
-
-# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-#    0.0   363.7   482.8   465.0   602.2  1000.0     322 
-
-# group by year and summarize conduct
-# by_year_cond <- clean %>%
-#   filter(cond != is.na(cond)) %>%
-#   group_by(year) %>%
-#   summarize(mean(cond))
-
-# summary(by_year_cond)
-
-# mean(cond)   
-# Min.   :181.1  
-# 1st Qu.:442.8  
-# Median :483.5  
-# Mean   :472.8  
-# 3rd Qu.:543.6  
-# Max.   :614.2  
-
-# group by ecoregion and summarize conduct
-# by_ecoreg_cond <- clean %>%
-#   filter(cond != is.na(cond)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(cond))
-
-# ecoregion mean(cond)
-# BadLand   518.6427
-# CheyRiv   349.0191
-# LWR       349.7756
-# TabLand   476.2714
-
-# by_site_cond <- clean %>%
-#   filter(cond != is.na(cond)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(cond))
-
-# Remove conductivity < 200 from samples
-
-# clean <- clean %>%
-#  mutate(cond = replace(cond, cond < 200, NA))
-
-# summary(clean$cond)
-
-# Min.   1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-# 209.0   410.4   508.0   519.0   613.0  1000.0     418 
-
-# rm(by_site_cond, by_year_cond, by_ecoreg_cond)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# alkalinity - measured by lab.  However, there is a chance for
-# transcription errors
-
-# summary(clean$alk)
-
-# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-# 0.0   205.8   232.0   242.1   283.0   580.0     565 
-
-# group by years and summarize pH
-# by_year_alk <- clean %>%
-#   filter(alk != is.na(alk)) %>%
-#   group_by(year) %>%
-#   summarize(mean(alk))
-
-# summary(by_year_alk)
-
-#  year- mean(alk)    
-#  Min.    191.7  
-#  1st Qu. 238.3  
-#  Median  244.7  
-#  Mean    236.9  
-#  3rd Qu. 247.2  
-#  Max.    264.3  
-               
-# group by ecorgion and summarize alk
-# by_ecoreg_alk <- clean %>%
-#   filter(alk != is.na(alk)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(alk))
-
-# Ecoreg  mean(alk)
-# BadLand 271.2435
-# CheyRiv 180.2632
-# LWR     162.3253
-# TabLand 256.8042
-
-# group by site and summarize alk
-# by_site_alk <- clean %>%
-#   filter(alk != is.na(alk)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(alk))
- 
-# Ranked mean alk by site
-# LWR3 137.4000
-# LWR1 142.4167
-# LWR4 151.5385
-# LWR2 157.4286
-# WOK1 160.1250
-# CHR2 178.6667
-# CHR1 181.0000
-# WOK2 183.2000
-# BLP1 191.0000
-# BEA1 199.4167
-# WOL1 203.0000
-# WCC2 208.7857
-# POR1 213.9444
-# WOK3 218.6667
-# MER1 223.3846
-# PAS1 226.0909
-# BEA2 228.1538
-# LON1 228.8000
-# AMH1 229.0000
-# WCC1 232.3750
-# WHR2 237.7143
-# WOK4 240.5000
-# NFL1 242.7692
-# BEA3 242.9000
-# WHR1 244.7500
-# WHR4 246.3636
-# COR1 248.3636
-# BEL2 253.2000
-# BEL1 264.7000
-# MER3 271.6667
-# WHR3 272.6154
-# CRA1 278.4286
-# MER2 280.6250
-# EAN2 280.9286
-# BLP2 285.5000
-# POR2 286.9286
-# POR3 290.3750
-# LOD1 290.7000
-# PAS2 296.8889
-# PAS3 299.3077
-# WCC3 300.2857
-# EAN1 302.7500
-# LCC1 310.4286
-# BUZ1 349.2500
-# POT1 376.2500
-# RED1 388.3636
-
-# group by month and summarize alk
-# by_month_alk <- clean %>%
-#   filter(alk != is.na(alk)) %>%
-#   group_by(month) %>%
-#   summarize(mean(alk))
-
-# mon mean(alk)
-# 1   260.4000
-# 5   224.5938
-# 6   257.0517
-# 7   232.3529
-# 8   231.7600
-# 9   224.8571
-# 10  247.7097
-# 11  219.5455
-# 12  271.5000
-#NA   241.3594
-
-# LWR3 has a low average alk of 137, no large changes between months,
-# although some years seem smaller ~190
-# Still some very suspect low values.  Use the lowest ecoregion and 
-# Tukey's 1.5 IQR rule to remove suspect values
-
-# lwr_alk <- clean %>%
-#   filter(ecoregion == "LWR") %>%
-#   select(alk)
-
-# summary(lwr_alk) # IQR = 68; 1.5 x 68 = 102; M - 1.5 IQR = 62
-
-# clean <- clean %>%
-#   mutate(alk = replace(alk, alk > 62, NA))
-
-# rm(by_ecoreg_alk, by_month_alk, by_site_alk, by_year_alk, lwr_alk)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# hardness - this is the combined Mg + Ca + Fe as CaCO3
-
-# summary(clean$hardness)
-
-#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-#  15.0   100.0   150.0   173.3   170.0  1100.0     629 
-
-# group by years and summarize hardness
-# by_year_hard <- clean %>%
-#   filter(hardness != is.na(alk)) %>%
-#   group_by(year) %>%
-#   summarize(mean(hardness))
-
-# summary(by_year_hard)
-
-#  year   mean(hardness) 
-#  Min.   :112.7  
-#  1st Qu.:119.0  
-#  Median :129.0  
-#  Mean   :162.4  
-#  3rd Qu.:176.7  
-#  Max.   :280.0  
-               
-# group by ecorgion and summarize hardness
-# by_ecoreg_hard <- clean %>%
-#   filter(hardness != is.na(hardness)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(hardness))
-
-# ecoregion mean(hardness)
-# BadLand   118.4175
-# CheyRiv   965.9091
-# LWR       132.0476
-# other     175.7143
-# TabLand   141.6824
-
-
-# group by site and summarize hardness
-# by_site_hard <- clean %>%
-#   filter(hardness != is.na(hardness)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(hardness))
- 
-# Ranked mean alk by site
-# site  mean(hardness)
-# WHR5  41.36364
-# POT1  56.04762
-# EAN2  63.22222
-# WHR4  69.53846
-# RED1  72.87500
-# EAN1  81.38462
-# LWR1  84.80000
-# BEL2  88.20000
-# LON1  94.61538
-# LWR2  102.40000
-# PAS3  102.58333
-# CRA1  103.94118
-# LWR4  104.60000
-# WHR3  112.20000
-# POR3  114.81818
-# PAS2  117.28571
-# BEL1  122.23529
-# LWR3  126.60000
-# LOD1  129.90909
-# WOK1  132.18182
-# BEA3  142.82353
-# MER4  145.71429
-# BEA1  147.00000
-# BEA2  151.82353
-# MER3  154.00000
-# PAS1  156.87500
-# NFL1  158.33333
-# BLP1  158.75000
-# WOK4  160.22222
-# COR1  162.57143
-# WOK2  165.00000
-# POR1  167.53846
-# POR_Lagoon 170.00000
-# AMH1  173.33333
-# WCC2  177.27273
-# MER1  178.57143
-# POR2  179.54545
-# WOK_Lagoon 180.00000
-# WOL1  181.81818
-# WOK3  183.18182
-# BUZ1  191.11111
-# WCC_Lagoon  200.00000
-# WHR1  204.50000
-# WCC1  206.36364
-# WCC3  225.55556
-# WHR2  262.85714
-# CHR2  964.54545
-# CHR1  967.27273
-
-# group by month and summarize hardness
-# by_month_hard <- clean %>%
-#   filter(hardness != is.na(hardness)) %>%
-#   group_by(month) %>%
-#   summarize(mean(hardness))
-
-# month mean(hardness)
-# 4     148.3077
-# 5     188.4565
-# 6     169.1748
-# 7     168.7528
-# 8     177.8400
-# 9     169.7237
-# 10    170.1190
-# 11    93.0000
-
-# There seems to be some interactions with hardness in time and space.
-# Given the number of sites with very low hardness right around the cutoff
-# I think these low values are real.
-
-# rm(by_ecoreg_hard, by_site_hard, by_year_hard, by_month_hard)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# tp - total phosphorus is the dissolved phos + particulate phos
-# we have recorded some very large values of TP during rainfall events
-
-# summary(clean$tp)
-# Min. 1st Qu.  Median    Mean    3rd Qu.    Max.    NA's 
-# 0.0000  0.1000  0.1800  0.5136  0.3100 23.0000     156 
-
-# group by years and summarize pH
-
-# by_year_tp <- clean %>%
-#   filter(tp != is.na(tp)) %>%
-#   group_by(year) %>%
-#   summarize(mean(tp))
-
-# summary(by_year_tp)
-# year       mean(tp)     
-#  Min.   :0.1710  
-#  1st Qu.:0.2726  
-#  Median :0.3571  
-#  Mean   :0.6177  
-#  3rd Qu.:0.4988  
-#  Max.   :3.7212  - this is 2006
-
-# group by ecorgion and summarize tp
-# by_ecoreg_tp <- clean %>%
-#   filter(tp != is.na(tp)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(tp))
-
-# Ecoreg  mean(tp)
-# BadLand 1.5743659 - this makes sense; big flushing flows
-# CheyRiv 0.2250250
-# LWR     0.3012623
-# TabLand 0.2154746
-
-# group by site and summarize tp
-# by_site_tp <- clean %>%
-#   filter(tp != is.na(tp)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(tp))
- 
-# Ranked mean tp by site
-# samp_site mean(tp)
-# AMH1 0.1634667
-# BEA1 0.0926800
-# BEA2 0.1731538
-# BEA3 0.2883478
-# BEL1 0.3506364 - largest tablelands site
-# BEL2 1.6757895 - big increase at boundary change
-# BLP1 0.1021852
-# BLP2 0.2112500
-# BUZ1 0.4431176
-# CHR1 0.2312917
-# CHR2 0.2156250
-# COR1 0.1948182
-# CRA1 0.1862692
-# EAN1 0.1963333 - largest tablelands site
-# EAN2 1.7916000 - big increase at boundary change
-# LCC1 0.3778571
-# LOD1 0.3353500
-# LON1 0.1391053
-# LWR1 0.3358235
-# LWR2 0.4278421
-# LWR3 0.3996667
-# LWR4 0.4557222
-# MER1 0.0896875
-# MER2 0.1657500
-# MER3 0.2805000 - largest tablelands site
-# MER4 0.2780000 - no increase at boundary change?
-# NFL1 0.1106250
-# PAS1 0.1836296
-# PAS2 0.2470870 - largest tablelands site
-# PAS3 1.1315600 - big increase at boundary change
-# POR1 0.4490000
-# POR2 0.2205217 - largest tablelands site
-# POR3 1.2827308 - big increase at boundary change
-# POT1 0.2009714
-# RED1 0.1712500
-# WCC1 0.1167778
-# WCC2 0.1401250 - largest tertiary aged site
-# WCC3 0.1770435 - pierre shale 
-# WHR1 0.2861364 - near reservation boundary (input)
-# WHR2 0.5806190 - end of upper white river
-# WHR3 1.6928333 - big increase - end of medicine root subws
-# WHR5 3.8837500 - next station down - end of bear lodge subws
-# WHR4 4.4570833 - final station on reservation
-# WOK1 0.2348333
-# WOK2 0.2168824
-# WOK3 0.2062105 - largest tablelands site
-# WOK4 0.4541875 - small increase at boundary change?
-# WOL1 0.1062759 
-
-# group by month and summarize tp
-# by_month_tp <- clean %>%
-#   filter(tp != is.na(tp)) %>%
-#   group_by(month) %>%
-#   summarize(mean(tp))
-
-# mon mean(tp)
-# 1  0.1260000
-# 4  0.2300000
-# 5  0.6361206
-# 6  0.6255707
-# 7  0.2894444 - not sure why smaller
-# 8  0.8315233
-# 9  0.6443402
-# 10 0.4836471
-# 11 0.1605000 - not sure why smaller
-# 12 0.3480690
-# NA 0.3282919
-
-# I don't see a compelling reason to remove any values. from tp
-
-# rm(by_ecoreg_tp, by_month_tp, by_site_tp, by_year_tp)
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# nh3 - ammonia this quickly moves to NO2 then NO3.
-
-# summary(clean$nh3)
-# indicates that there is a single large ammonia hit.  Should remove
-# from analysis.
-# clean <- clean %>%
-#  select(-nh3)
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Nite - nitrite this quickly moves to NO3.
-
-# summary(clean$nite) # might potentially want to keep in analysis
-
-# by_year_nite <- clean %>%
-#   filter(nite != is.na(nite)) %>%
-#   group_by(year) %>%
-#   summarize(mean(nite))
-
-# summary(by_year_nite)
-# year       mean(nite)     
-# 1993  0.05264706
-# 1994 0.03877778
-# 1995 0.03158824
-# 1996 0.07875000
-# 1997 0.44205882#
-# 1998 0.44000000
-# 1999 0.47351515
-# 2000 0.37051282
-# 2003 0.43000000
-# 2004 2.11500000 - not very confident with this value
-# overall this may indicate an increasing trend in nutrient use
-
-# group by ecorgion and summarize nite
-# by_ecoreg_nite <- clean %>%
-#   filter(nite != is.na(nite)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(nite))
-
-# Ecoreg  mean(nite)
-# BadLand 0.3392500
-# CheyRiv 0.6563636 - lots of upstream landuse
-# LWR     0.2599524#
-# TabLand 0.3103611
-
-# group by site and summarize nite
-# by_site_nite <- clean %>%
-#   filter(nite != is.na(nite)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(nite))
- 
-# Ranked mean nite by site
-# samp_site mean(nite)
-# AMH1 0.3836667
-# BEA1 0.1606000
-# BEA2 0.1086667
-# BEA3 0.0910000
-# BEL1 0.0400000
-# BEL2 0.1933333
-# BLP1 0.2968750
-# BUZ1 0.2495000
-# CHR1 0.6537500 - high val
-# CHR2 0.6633333 - high val
-# COR1 0.1633333
-# CRA1 0.9560000 - very high val 
-# EAN1 0.2643333
-# EAN2 1.0635000 - extremely high val
-# LOD1 0.2466667
-# LON1 0.5708333 - high val
-# LWR1 0.0595000
-# LWR2 0.1666667
-# LWR3 0.6000000 - high val
-# LWR4 0.5260000
-# MER1 0.0210000
-# MER2 0.0240000
-# MER3 0.2420000
-# NFL1 0.1050000
-# PAS1 0.3333333
-# PAS2 0.2300000
-# PAS3 0.3325000
-# POR1 0.3720000
-# POR2 0.2262500 - decreasing from POR1
-# POR3 0.1862000
-# POT1 0.4150000 - somewhat high val
-# RED1 0.2250000
-# WCC1 0.5043750 - high val
-# WCC2 0.1015000 - large decrease
-# WHR1 0.2852500
-# WHR2 0.1490000
-# WHR3 0.3300000
-# WHR4 0.0550000
-# WOK1 0.1600000
-# WOK2 0.1000000
-# WOK3 0.2714000
-# WOK4 0.2595000
-# WOL1 0.1566667
-
-# group by month and summarize nite
-# by_month_nite <- clean %>%
-#   filter(nite != is.na(nite)) %>%
-#   group_by(month) %>%
-#   summarize(mean(nite))
-
-# mon mean(nite)
-# 1 0.6765000
-# 5 0.0275000
-# 6 0.1656316
-# 7 0.3018750
-# 8 0.6391667 - lower flows more increases?
-# 9 0.0100000 - not sure what the pattern
-# 10 0.4660000
-# 11 0.0100000
-# 12 0.2762222
-
-# not sure how to use these values...
-# rm(by_ecoreg_nite, by_month_nite, by_site_nite, by_year_nite)
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ca - this is a key variable - we might be able to use hardness ratio
 
 # summary(clean$ca) # might potentially want to keep in analysis
@@ -1085,105 +523,6 @@ by_ecoreg_ca <- clean %>%
 # other   56.28571
 # TabLand 47.25157
 
-# group by site and summarize ca
-# by_site_ca <- clean %>%
-#   filter(ca != is.na(ca)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(ca))
- 
-# Ranked mean ca by site
-# samp_site mean(ca)
-# AMH1 58.66667
-# BEA1 46.37500
-# BEA2 49.70588
-# BEA3 47.88235
-# BEL1 41.58824
-# BEL2 30.00000
-# BLP1 51.68750
-# BUZ1 62.88889
-# CHR1 259.18182 - big value
-# CHR2 258.00000 - big value
-# COR1 53.35714
-# CRA1 39.58824
-# EAN1 29.00000
-# EAN2 13.62222
-# LOD1 47.81818
-# LON1 36.15385
-# LWR1 26.00000
-# LWR2 32.20000
-# LWR3 40.60000
-# LWR4 32.40000
-# MER1 60.28571
-# MER3 50.20000
-# MER4 48.14286
-# NFL1 52.50000
-# PAS1 52.81250
-# PAS2 39.64286
-# PAS3 34.41667
-# POR_Lagoon 53.80000
-# POR1 52.07692
-# POR2 56.36364
-# POR3 36.45455
-# POT1 19.95238
-# RED1 26.25000
-# WCC_Lagoon 63.00000
-# WCC1 66.81818
-# WCC2 55.18182
-# WCC3 67.00000
-# WHR1 62.50000
-# WHR2 81.85714
-# WHR3 34.60000 - what is happening here? less Ca in Badlands?
-# WHR4 22.00000
-# WHR5 12.72727
-# WOK_Lagoon 62.00000
-# WOK1 45.09091
-# WOK2 55.10000
-# WOK3 61.18182
-# WOK4 53.88889
-# WOL1 60.3636
-
-# group by month and summarize ca
-# by_month_ca <- clean %>%
-#   filter(ca != is.na(ca)) %>%
-#   group_by(month) %>%
-#   summarize(mean(ca))
-
-# mon mean(ca)
-# 4  49.84615
-# 5  59.36522
-# 6  52.91262
-# 7  53.31461
-# 8  54.86667
-# 9  52.55263
-# 10 54.30952
-# 11 32.00000
-
-# rm(by_ecoreg_ca, by_month_ca, by_site_ca, by_year_ca)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# mg - this is a key variable - we might be able to use hardness ratio
-
-# summary(clean$mg) # might potentially want to keep in analysis
-
-#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-#  0.500   3.000   6.000   9.125   8.000  98.000     629 
-
-# by_year_mg <- clean %>%
-#   filter(mg != is.na(mg)) %>%
-#   group_by(year) %>%
-#   summarize(mean(mg))
-
-# summary(by_year_mg)
-# year mean(mg) - follows a similar pattern as mg
-# 2005 0.510000
-# 2006 6.740741
-# 2007 4.685714
-# 2008 4.448276
-# 2009 17.269231
-# 2010 5.048780
-# 2011 17.400000
-# 2012 4.600000
-# 2013 4.906977
-
 # group by ecorgion and summarize mg
 by_ecoreg_mg <- clean %>%
    filter(mg != is.na(mg)) %>%
@@ -1203,207 +542,6 @@ by_ecoreg_mg <- clean %>%
 #   group_by(samp_site) %>%
 #   summarize(mean(mg))
  
-# samp_site mean(mg)
-# AMH1 6.3333333
-# BEA1 7.8125000
-# BEA2 6.8176471
-# BEA3 5.9470588
-# BEL1 4.3529412
-# BEL2 3.2500000
-# BLP1 7.5000000
-# BUZ1 8.3333333
-# CHR1 78.0909091
-# CHR2 77.0909091
-# COR1 7.2642857
-# CRA1 1.2411765 - low
-# EAN1 1.8846154 - low
-# EAN2 6.9666667 - rapid increase?
-# LOD1 2.5454545
-# LON1 0.7076923 - very low
-# LWR1 5.2000000 - higher
-# LWR2 5.4000000
-# LWR3 6.4000000
-# LWR4 5.8000000
-# MER1 6.5714286
-# MER3 5.7516667
-# MER4 5.7142857
-# NFL1 6.5000000
-# PAS1 6.0000000
-# PAS2 3.9285714
-# PAS3 4.0833333
-# POR_Lagoon 8.8000000
-# POR1 9.0076923 - higher
-# POR2 10.0909091
-# POR3 5.9090909 - big drop at badlands boundary?
-# POT1 1.4047619
-# RED1 1.7500000
-#  WCC_Lagoon 10.0000000
-# WCC1 9.4545455
-# WCC2 9.9090909
-# WCC3 14.3333333
-# WHR1 13.4285714
-# WHR2 14.5714286
-# WHR3 6.0000000 - reduction at badlands boundary?
-# WHR4 3.6538462
-# WHR5 2.4545455
-# WOK_Lagoon 7.0000000
-# WOK1 4.6363636
-# WOK2 6.6000000
-# WOK3 7.5454545
-# WOK4 6.2222222
-# WOL1 7.6363636
-
-# group by month and summarize mg
-# by_month_mg <- clean %>%
-#   filter(mg != is.na(mg)) %>%
-#   group_by(month) %>%
-#   summarize(mean(mg))
-
-# mon mean(mg)
-# 4  5.846154 - low; temperature limit?
-# 5  9.708696
-# 6  8.825243
-# 7  8.742697
-# 8  10.093333
-# 9  9.328947
-# 10 8.630952
-# 11 4.000000 - low; temperature limit?
-# NA 0.510000
-
-# rm(by_ecoreg_mg, by_month_mg, by_site_mg, by_year_mg)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# na - this is a key variable - we might be able to balance against 
-#        other variables
-
-# summary(clean$na)
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-#    0.0    30.0    56.5    70.1    96.0   263.0     483 
-
-# by_year_na <- clean %>%
-#   filter(na != is.na(na)) %>%
-#   group_by(year) %>%
-#   summarize(mean(na))
-
-# summary(by_year_na)
-# year mean(na) 
-# 1993 65.12500
-# 1994 71.92771
-# 1995 68.45455
-# 1996 71.12857
-# 1997 78.80392
-# 1998 78.87500
-# 1999 79.11860
-# 2000 72.39394
-# 2004 58.57143
-# 2006 53.67308
-# 2011 68.02222
-
-# group by ecorgion and summarize na
-# by_ecoreg_na <- clean %>%
-#   filter(na != is.na(na)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(na))
-
-# ecoregion mean(na)
-# BadLand  94.86861
-# CheyRiv 213.36667
-# LWR      24.81818
-# other    30.57143
-# TabLand  61.30374
-
-# by_sub_na <- clean %>%
-#   filter(na != is.na(na)) %>%
-#   group_by(subws) %>%
-#   summarize(mean(na))
-
-# subws mean(na)
-#  ChR 213.36667
-# WhU 46.60294
-# WhW 52.16993
-# WhM 73.92632
-# WhB 81.42727
-# WhP 79.22388
-# LWR 35.04348
-
-# group by site and summarize na
-# by_site_na <- clean %>%
-#   filter(na != is.na(na)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(na))
- 
-# samp_site mean(na)
-# AMH1 36.64286
-# BEA1 20.81818
-# BEA2 38.92308
-# BEA3 54.10000
-# BEL1 84.40000
-# BEL2 79.30000 - decrease at boundary
-# BLP1 16.41667
-# BLP2 56.00000
-# BUZ1 90.62500
-# CHR1 212.45000 - high value good predictor?
-# CHR2 215.20000 - high value good predictor?
-# COR1 51.36364
-# CRA1 89.30769 - high
-# EAN1 95.87500 - high
-# EAN2 114.15385 - high
-# LCC1 109.28571 - high
-# LOD1 91.41000  - high
-# LON1 79.45455
-# LWR1 38.63636
-# LWR2 38.35714
-# LWR3 32.00000
-# LWR4 30.16667
-# MER1 28.80000
-# MER2 76.00000 - high
-# MER3 72.50000
-# MER4 82.00000
-# NFL1 37.50000
-# PAS1 34.72727
-# PAS2 97.00000
-# PAS3 107.00000
-# POR_Lagoon 33.80000
-# POR1 35.40909
-# POR2 69.68421
-# POR3 93.30000
-# POT1 149.40000
-# RED1 152.64286
-# WCC_Lagoon 26.00000
-# WCC1 27.26316
-# WCC2 31.68421
-# WCC3 72.05263
-# WHR1 87.15909
-# WHR2 106.35000 
-# WHR3 116.35714
-# WHR4 134.18182
-# WOK_Lagoon 19.00000
-# WOK1 12.55000
-# WOK2 18.33333
-# WOK3 29.62500
-# WOK4 46.53333
-# WOL1 14.59091
-
-# group by month and summarize na
-# by_month_na <- clean %>%
-#   filter(na != is.na(na)) %>%
-#   group_by(month) %>%
-#   summarize(mean(na))
-
-# mon mean(na)
-# 1  67.40000
-# 4  62.75000
-# 5  60.69318
-# 6  69.84286
-# 7  76.29412
-# 8  72.35714
-# 9  66.34286
-# 10 74.55844
-# 11 53.97727 - odd change
-# 12 81.13667 - odd change
-# NA 73.57862
-
-# rm(by_ecoreg_na, by_month_na, by_site_na, by_year_na, by_sub_na)
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # k - this is not likely a key variable - it seems to be pretty 
 # stationary
@@ -1431,170 +569,6 @@ by_ecoreg_mg <- clean %>%
 # LWR 7.916667
 # TabLand 11.142857
 
-# by_sub_k <- clean %>%
-#   filter(k != is.na(k)) %>%
-#   group_by(subws) %>%
-#   summarize(mean(k))
-
-# subws mean(k)
-# subws mean(k)
-# ChR 13.58333
-# WhU 11.16667
-# WhW 11.22917
-
-# group by site and summarize k
-# by_site_k <- clean %>%
-#   filter(k != is.na(k)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(k))
- 
-# samp_site mean(k)
-# samp_site mean(k)
-# CHR1 13666667
-# CHR2 13.500000
-# POR1 10.666667
-# POR2 13.000000
-# POR3 11.666667
-# WCC1 9.666667
-# WCC2 11.333333
-# WCC3 15.333333
-# WHR1 11.000000
-# WHR2 12.500000
-# WOK1 7.333333
-# WOK2 10.833333
-# WOK3 11.500000
-# WOK4 12.333333
-# WOL1 8.500000
-
-# group by month and summarize k
-# by_month_k <- clean %>%
-#   filter(k != is.na(k)) %>%
-#   group_by(month) %>%
-#   summarize(mean(k))
-
-# mon mean(k)
-# 5  11.60000
-# 6  11.80000
-# 7  12.86667
-# 8  11.06667
-# 9  11.53333
-# 10 10.26667
-
-# rm(by_month_k, by_site_k, by_year_k, by_sub_k)
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# cl - this is a key variable - we might be able to use hardness ratio
-
-# summary(clean$cl) # might potentially want to keep in analysis
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-#   0.00    5.00    9.00   15.04   14.00  152.00     476 
-
-# by_year_cl <- clean %>%
-#   filter(cl != is.na(cl)) %>%
-#   group_by(year) %>%
-#   summarize(mean(cl))
-
-# summary(by_year_cl)
-# year mean(cl) 
-
-# 1993 8.659556
-# 1994 19.975904
-# 1995 13.727273
-# 1996 10.579710
-# 1997 14.782609
-# 1998 18.525000
-# 1999 16.243902
-# 2000 13.841270
-# 2003 5.730000
-# 2004 17.791667
-# 2005 4.433333
-# 2011 23.94444
-
-# group by ecorgion and summarize cl
-# by_ecoreg_cl <- clean %>%
-#   filter(cl != is.na(cl)) %>%
-#   group_by(ecoregion) %>%
-#   summarize(mean(cl))
-
-# ecoregion mean(cl)
-# BadLand 12.625180
-# CheyRiv 115.000000
-# LWR 5.993182
-# TabLand 9.977493
-
-# group by site and summarize cl
-# by_site_cl <- clean %>%
-#   filter(cl != is.na(cl)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(cl))
- 
-# samp_site mean(cl)
-# AMH1 6.181818
-# BEA1 5.666667
-# BEA2 7.692308
-# BEA3 7.070000
-# BEL1 21.000000 - interesting increase?
-# BEL2 8.100000
-# BLP1 6.436000
-# BLP2 14.250000
-# BUZ1 15.750000
-# CHR1 113.800000
-# CHR2 117.000000
-# COR1 7.818182
-# CRA1 12.514286
-# EAN1 11.000000
-# EAN2 12.571429
-# LCC1 15.000000
-# LOD1 9.170000
-# LON1 24.100000 - interesting increase
-# LWR1 6.533333
-# LWR2 8.021429
-# LWR3 6.080000
-# LWR4 5.141667
-# MER1 4.915385
-# MER2 9.500000
-# MER3 8.520000
-# NFL1 5.769231
-# PAS1 6.200000
-# PAS2 10.666667
-# PAS3 12.615385
-# POR1 6.366667
-# POR2 9.735000
-# POR3 11.028571
-# POT1 15.012500 - interesting increase
-# RED1 11.845455
-# WCC1 8.586364
-# WCC2 11.780000
-# WCC3 17.300000
-# WHR1 13.681818
-# WHR2 14.350000
-# WHR3 13.071429
-# WHR4 12.636364
-# WOK1 5.029412
-# WOK2 6.425000
-# WOK3 7.977778
-# WOK4 9.206250
-# WOL1 5.595652
-
-# group by month and summarize cl
-# by_month_cl <- clean %>%
-#   filter(cl != is.na(cl)) %>%
-#   group_by(month) %>%
-#   summarize(mean(cl))
-
-# mon mean(cl)
-# 1  6.000000#
-# 5  15.088608
-# 6  11.685484
-# 7  23.264706 - high in summmer
-# 8  20.250000 - high in summmer
-# 9  21.650000 - high in summmer
-# 10 14.328947
-# 11 8.045455
-# 12 11.645333
-# NA 16.154787
-
-# rm(by_ecoreg_cl, by_month_cl, by_site_cl, by_year_cl)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # f - this is a key variable 
 
@@ -1634,81 +608,6 @@ by_ecoreg_f <- clean %>%
 # LWR     0.4464634
 # TabLand 0.4175668
 
-
-# group by site and summarize f
-# by_site_f <- clean %>%
-#   filter(f != is.na(f)) %>%
-#   group_by(samp_site) %>%
-#   summarize(mean(f))
- 
-# samp_site mean(f)
-# AMH1 0.3733333
-# BEA1 0.4183333
-# BEA2 0.4846154
-# BEA3 0.4720000
-# BEL1 0.4430000
-# BEL2 0.4100000
-# BLP1 0.3916667
-# BLP2 0.4000000
-# BUZ1 0.4250000
-# CHR1 0.4707143
-# CHR2 0.5550000
-# COR1 0.5427273
-# CRA1 0.2307143
-# EAN1 0.2337500
-# EAN2 0.6057143
-# LCC1 0.3271429
-# LOD1 0.3380000
-# LON1 0.2790000
-# LWR1 0.4475000
-# LWR2 0.4664286
-# LWR3 0.4210000
-# LWR4 0.5353846
-# MER1 0.4223077
-# MER2 0.3587500
-# MER3 0.4173333
-# NFL1 0.4638462
-# PAS1 0.5281818
-# PAS2 0.3777778
-# PAS3 0.3800000
-# POR1 0.3694444
-# POR2 0.4514286
-# POR3 0.4718750
-# POT1 0.4781250
-# RED1 0.3990909
-# WCC1 0.4662500
-# WCC2 0.4178571
-# WCC3 0.4028571
-# WHR1 0.5231250
-# WHR2 0.5135714
-# WHR3 0.4421429
-# WHR4 0.4663636
-# WOK1 0.3520000
-# WOK2 0.4520000
-# WOK3 0.4558333
-# WOK4 0.4110000
-# WOL1 0.4588889
-
-# group by month and summarize f
-# by_month_f <- clean %>%
-#   filter(f != is.na(f)) %>%
-#   group_by(month) %>%
-#   summarize(mean(f))
-
-# mon mean(f)
-# 1  0.3400000
-# 5  0.4228125
-# 6  0.4331897
-# 7  0.4657895
-# 8  0.5020000
-# 9  0.3995238
-# 10 0.3756452
-# 11 0.3636364
-# 12 0.4403333
-# NA 0.4569634
-
-# rm(by_month_f, by_site_f, by_year_f)
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # so4 - this is a key variable - we might be able to use hardness ratio
 
@@ -1747,62 +646,6 @@ by_ecoreg_so4 <- clean %>%
 # CheyRiv 985.21429
 # LWR      28.26136
 # TabLand  42.61109
-
-# group by site and summarize so4
-# by_site_so4 <- clean %>%
-#   filter(so4 != is.na(so4)) %>%
-#   group_by(samp_site) %>%
-#   summarize(so4_avg = mean(so4))
- 
-# samp_site mean(so4)
-# AMH1 26.94667
-# BEA1 13.09091
-# BEA2 28.50000
-# BEA3 34.50000
-# BEL1 140.60000 -really big change
-# BEL2 38.80000
-# BLP1 60.71083
-# BLP2 13.33333
-# BUZ1 28.28571
-# CHR1 979.33333
-# CHR2 995.80000
-# COR1 33.81818
-# CRA1 17.31692
-# EAN1 26.28571
-# EAN2 37.21429
-# LCC1 22.14286
-# LOD1 23.30000
-# LON1 25.88889
-# LWR1 47.25000
-# LWR2 49.28571
-# LWR3 30.20000
-# LWR4 32.76667
-# MER1 18.46154
-# MER2 33.75000
-# MER3 45.73333
-# NFL1 15.92308
-# PAS1 22.72727
-# PAS2 36.55556
-# PAS3 90.46154 - big increase
-# POR1 30.69565
-# POR2 39.30000
-# POR3 45.31818
-# POT1 31.31250
-# RED1 38.90909
-# WCC1 27.19048
-# WCC2 38.42105
-# WCC3 59.84211
-# WHR1 194.47619
-# WHR2 238.26316
-# WHR3 202.35714
-# WHR4 169.72727
-# WOK1 6.91000
-# WOK2 17.46667
-# WOK3 36.62556
-# WOK4 50.18750
-# WOL1 19.83000
-
-# rm(by_site_so4, by_year_so4)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # nate - this is a key variable - we might be able to use hardness ratio
@@ -1857,61 +700,7 @@ by_ecoreg_so4 <- clean %>%
 #   group_by(samp_site) %>%
 #   summarize(mean(nate))
  
-# samp_site mean(nate)
-# AMH1 0.15700000
-# BEA1 0.24916667
-# BEA2 0.26136364
-# BEA3 0.27578947
-# BEL1 0.28571429
-# BEL2 0.35875000
-# BLP1 0.86772727
-# BLP2 0.03700000
-# BUZ1 0.14375000
-# CHR1 0.60047619
-# CHR2 0.49133333
-# COR1 0.19200000
-# CRA1 1.16640000
-# EAN1 0.21000000
-# EAN2 1.28769231
-# LCC1 0.11000000
-# LOD1 0.15000000
-# LON1 1.73350000
-# LWR1 0.29384615
-# LWR2 0.33937500
-# LWR3 0.46363636
-# LWR4 0.37387500
-# MER1 0.18833333
-# MER2 0.16000000
-# MER3 0.46272727
-# MER4 0.18571429
-# NFL1 0.13714286
-# PAS1 0.29333333
-# PAS2 0.15214286
-# PAS3 0.15647059
-# POR_Lagoon 0.25400000
-# POR1 0.33923077
-# POR2 0.09866667
-# POR3 0.13312500
-# POT1 0.10952381
-# RED1 0.05555556
-# WCC_Lagoon 0.05000000
-# WCC1 0.82875000
-# WCC2 0.30727273
-# WCC3 0.09166667
-# WHR1 0.32615385
-# WHR2 0.31000000
-# WHR3 0.48777778
-# WHR4 0.69600000
-# WHR5 0.86000000
-# WOK_Lagoon 0.05000000
-# WOK1 0.39782609
-# WOK2 0.20642857
-# WOK3 0.18000000
-# WOK4 0.25928571
-# WOL1 0.17875000
-
 # rm(by_ecoreg_nate, by_site_nate, by_year_nate)
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # op - this is a key variable - we might be able to use hardness ratio
 
@@ -1957,55 +746,6 @@ by_ecoreg_so4 <- clean %>%
 #   filter(op != is.na(op)) %>%
 #   group_by(samp_site) %>%
 #   summarize(mean(op))
- 
-# samp_site mean(op)
-# AMH1 0.18545455
-# BEA1 0.07983333
-# BEA2 0.13792308
-# BEA3 0.23250000
-# BEL1 0.28555556
-# BEL2 0.40570000
-# BLP1 0.08766667
-# BLP2 0.19950000
-# BUZ1 0.41175000
-# CHR1 0.09958824
-# CHR2 0.04000000
-# COR1 0.13118182
-# CRA1 0.15242857
-# EAN1 0.18175000
-# EAN2 1.06953846 - not sure right...
-# LCC1 0.34442857
-# LOD1 0.17270000
-# LON1 0.13890000
-# LWR1 0.24641667
-# LWR2 0.33278571
-# LWR3 0.31140000
-# LWR4 0.44400000
-# MER1 0.08927273
-# MER2 0.08775000
-# MER3 0.19573333
-# NFL1 0.08533333
-# PAS1 0.17054545
-# PAS2 0.21866667
-# PAS3 0.22830769
-# POR1 0.09275000
-# POR2 0.18305000
-# POR3 0.30008696
-# POT1 0.18850000
-# RED1 0.14945455
-# WCC1 0.08759091
-# WCC2 0.10640000
-# WCC3 0.13120000
-# WHR1 0.14745455
-# WHR2 0.16394737
-# WHR3 0.39585714
-# WHR4 1.00281818
-# WOK1 0.21909091
-# WOK2 0.17331250
-# WOK3 0.13582353
-# WOK4 0.16425000
-# WOL1 0.09108333
-
 # rm(by_ecoreg_op, by_site_op, by_year_op)
 ```
 
@@ -2047,6 +787,12 @@ munged <- munged %>%
   mutate(mg = if_else(is.na(mg), mg_ave, mg)) %>%
   mutate(ca_mg_rat = ca/mg) %>%
   mutate(ca_mg_rat = round(ca_mg_rat, digits = 3)) 
+
+rm(clean)
+
+
+  
+
 ```
 
 ```{r munge.input.clean2}
@@ -2092,12 +838,11 @@ clean2 <- munged %>%
          year, month, temp_c, ph, cond, ca_meq, mg_meq,
          na_meq, k_meq, cl_meq, f_meq, so4_meq, nate_meq,
          op_meq, tp_meq, ca_mg_rat,hco3, cation, anion) 
+
+rm(munged)
 ```
 
 ```{r prepare.data.for.pca}
-# the global environment is getting a bit full...
-rm(raw,munged,cleaner,clean)
-
 # prepare to do a pca of major cations and anions by removing non-
 # relevant variables, such as date, temperature and field conductivity
 # (which has errors and is duplicated)  Because of  missing values and 
@@ -2428,8 +1173,6 @@ pca.interp <- pca.interp %>%
   mutate(samp_site = as.factor(samp_site)) %>%
   mutate(group = as.factor(group))
 
-#summary(pca.interp) # delete if knits
-
 # group by samp_site and summarize
 pca.grouped <- pca.interp %>%
   group_by(samp_site, final, ecoregion, subws) %>%
@@ -2454,8 +1197,6 @@ pca.gr.spread <- pca.gr.count %>%
 pca.gr.spread <- remove_rownames(pca.gr.spread)
 pca.gr.spread <- column_to_rownames(pca.gr.spread, var = "samp_site") 
 pca.gr.spread[is.na(pca.gr.spread)] <- 0
-
-# pca.gr.tr <- as.data.frame(t(pca.gr.spread)) # delete if this knits...
 
 pca.gr.spread <- pca.gr.spread %>%
   rowwise() %>% 
@@ -2520,9 +1261,6 @@ pca.grouped.gath <- pca.grouped %>%
   select(-ecoregion) %>%
   select(-subws) %>%
   select(-samp_site) %>%
-  select(-PC1) %>%
-  select(-PC2) %>%
-  select(-PC3) %>%
   select(-cation) %>%
   select(-anion) %>%
   rename(Calcium = ca) %>%
@@ -2534,7 +1272,10 @@ pca.grouped.gath <- pca.grouped %>%
   rename(Chloride = cl) %>%
   rename(Fluoride = f) %>%
   rename(Sulfate = so4) %>%
-  rename(Bicarbonate = hco3)
+  rename(Bicarbonate = hco3) %>%
+  select(-PC1) %>%
+  select(-PC2) %>%
+  select(-PC3)
   
 pca.grouped.cation <- pca.grouped.gath %>%
   select(Calcium:Sodium, CaMg_Ratio, Final_Group) %>%

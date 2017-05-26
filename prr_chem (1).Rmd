@@ -1,0 +1,1996 @@
+---
+title: "Pine Ridge Reservation Water Chemistry"
+author: "Charles Jason Tinant"
+date: "5/18/2017"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+
+# This project is shared on Github
+# 
+# Suggested Project Folder Setup 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# The project will be a folder with the following structure:
+# R          - contains scripts
+# Data       - contains the raw data, after the start of the project,
+#              this folder should be locked from editing
+# Plots      - any guesses as to what this contains?
+# Output     - contains all files produced by scripts which are not graphics
+# Manuscript - contains manuscripts that integrate plots and output 
+#              through an literate programming, such as Sweave or R 
+#              Markdown.
+```
+
+```{r library, echo = FALSE, message=FALSE}
+# Library of packages used or planned to be used in the workflow
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+library(MASS)       # for quadratic discriminant analysis
+library(stringr)    # string tools
+library(janitor)    # quick tools for cleaning up var names
+library(broom)      # tidies up output 
+library(lubridate)  # makes dealing with dates a little easier
+library(gridExtra)  # misc. functions for "Grid" graphics
+library(ggthemes)   # Some extra themes, geoms, and scales for 'ggplot2'.
+library(ggfortify)  # biplots
+library(MVN)        # tests for multivariate normality.  Requires: 'pcaPP', 
+                    #   ‘laeken’, ‘cvTools’, ‘sROC’, ‘VIM’, ‘sgeostat’, 
+                    #   ‘robCompositions’, ‘moments’, ‘mvoutlier’
+library(AID)        # Estimation of Box-Cox Power Trans. Parameter
+# library(modelr)   # functions for modelling that help to seamlessly 
+                    # integrate modelling into a pipeline of data 
+                    # manipulation and visualisation.
+library(biotools)   # tools for applied stats and biometry 
+library(GGally)     # extends 'ggplot2' functionality; 'ggpairs'
+library(tidyverse)  # loads ggplot2, tibble, tidyr, readr, purrr, dplyr
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Decision tree packages:
+# library(rpart)
+#library(rpart.plot) # Nicer plot of decision tree
+#library(rattle)
+#library(RColorBrewer)
+#library(randomForest)
+# table packages:
+library(knitr)       # lightweight table package
+# library(xtable)      # God let this one be the table package that works
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Spatial data packages
+library(ggmap)         # comes with a nice theme_nothing() function
+# library(sp)          # classes for spatial data
+# library(raster)      # grids, rasters
+# library(rasterVis)   # raster visualisation
+# library(maptools)    # Tools for Reading and Handling Spatial Objects 
+# library(rgeos)       # Interface to Geometry Engine - Open Source
+# library(scales)      # tells ggplot what the proper scale should be
+# library(RgoogleMaps) # Overlays on Static Maps
+# library(rgdal)       # reads in shape files
+# library(tmap)        # thematic map visualization
+# library(Cairo)       # creates high quality vector and bitmap images
+#                        https://pakillo.github.io/R-GIS-tutorial/
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Some other packages might be useful are:
+# ggbiplot            # needs a the github installation 
+# forcats             # tools for working with factors
+# httr                # tools for working with urls
+# hms                 # works with lubridate for time of day
+# jsonlite            # JSON parser and generator for r
+# stringr             # wrappers for common string operations
+# rvest               # webpage scraper
+# xml2                # parse XML
+```
+
+```{r load.raw.data, echo = FALSE, warning=FALSE}
+# The original xlsx file "Chemistry-1993-2013_17Mar21" was converted
+# to a csv.using Excel.  The remainder of this chunk is to clean and
+# standardize names, remove empty colums and rows, and add grouping 
+# variables.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 1) load data 
+data.raw <- read_csv("~/Google Drive/R-files-consolidated/BearLodge/Data/Chemistry-1993-2013_17Mar21.csv", 
+    col_types = cols(Hg = col_character()))
+
+# 2) tidy up the data with dplyr & standardize var names with janitor  
+# clean names, remove empty columns and rows
+data.raw <- data.raw %>%
+  clean_names() %>%
+  remove_empty_cols() %>%
+  filter(!is.na(sample_sites)) %>% 
+  mutate(sample_sites = as.factor(sample_sites)) %>%
+  select(-x52)
+
+# 3) add short names; need to use two steps to avoid an overflow error
+raw1 <- data.raw %>%
+  mutate(samp_site = 
+    if_else(sample_sites == "American Horse I", "AMH1", 
+    if_else(sample_sites == "Bear Creek I", "BEA1",
+    if_else(sample_sites == "Bear Creek II", "BEA2",    
+    if_else(sample_sites == "Bear Creek III", "BEA3",
+    if_else(sample_sites == "Bear in the Lodge I", "BEL1",
+    if_else(sample_sites == "Bear in the Lodge II", "BEL2",
+    if_else(sample_sites == "Bear in the Lodge USGS1", "BEL_USGS",
+    if_else(sample_sites == "Bear in the Lodge USGS2", "BEL_USGS",
+    if_else(sample_sites == "Bear in the Lodge USGS3", "BEL_USGS",
+    if_else(sample_sites == "Black Pipe I", "BLP1",
+    if_else(sample_sites == "Black Pipe II", "BLP2",
+    if_else(sample_sites == "Buzzard Creek I", "BUZ1",       
+    if_else(sample_sites == "Cheyenne River I", "CHR1",
+    if_else(sample_sites == "Cheyenne River II", "CHR2",
+    if_else(sample_sites == "Corn Creek I", "COR1",      
+    if_else(sample_sites == "Craven Creek I", "CRA1",
+    if_else(sample_sites == "Eagle Nest I", "EAN1",
+    if_else(sample_sites == "Eagle Nest II", "EAN2",
+    if_else(sample_sites == "Little Corn Creek I", "LCC1",
+    if_else(sample_sites == "Little White River I", "LWR1",
+    if_else(sample_sites == "Little White River II", "LWR2",
+    if_else(sample_sites == "Little White River III", "LWR3",
+    if_else(sample_sites == "Little White River IV", "LWR4",
+    if_else(sample_sites == "Long Creek I", "LON1",
+    if_else(sample_sites == "Lost Dog Creek I", "LOD1",
+    if_else(sample_sites == "Medicine Root I", "MER1",
+    if_else(sample_sites == "Medicine Root II", "MER2",      
+    if_else(sample_sites == "Medicine Root III", "MER3",
+    if_else(sample_sites == "Medicine Root IV", "MER4",
+    if_else(sample_sites == "No Flesh Creek I", "NFL1",
+    if_else(sample_sites == "Pass Creek I", "PAS1",
+    if_else(sample_sites == "Pass Creek II", "PAS2",      
+    if_else(sample_sites == "Pass Creek III", "PAS3",
+    if_else(sample_sites == "Pass Creek IV", "PAS4",
+    if_else(sample_sites == "Porcupine Creek I", "POR1", 
+           "stuff" , missing = NULL))))))))))))))))))))))))))))))))))))
+   
+# 3b) split into two pieces
+raw2 <- raw1 %>%
+  filter(samp_site == "stuff")
+raw1 <- raw1 %>%
+  filter(samp_site != "stuff")
+
+# 3c) add short names for the other half
+raw2 <- raw2 %>%
+ mutate(samp_site = if_else(sample_sites == "Porcupine Creek II", "POR2",
+    if_else(sample_sites == "Porcupine Creek III", "POR3",
+    if_else(sample_sites == "Porcupine Lagoon upstream", "POR_Lagoon",
+    if_else(sample_sites == "Porcupine Lagoon downstream", "POR_Lagoon",
+    if_else(sample_sites == "Pine Ridge Lift Station Downstream", "WCC_Lagoon",
+    if_else(sample_sites == "Potato Creek", "POT1",
+    if_else(sample_sites == "Red Water Creek", "RED1",
+    if_else(sample_sites == "White Clay Creek I", "WCC1", 
+    if_else(sample_sites == "White Clay Creek II", "WCC2",
+    if_else(sample_sites == "White Clay Creek III", "WCC3",
+    if_else(sample_sites == "Wolf Creek I", "WOL1",
+    if_else(sample_sites == "White River I", "WHR1",
+    if_else(sample_sites == "White River II", "WHR2",      
+    if_else(sample_sites == "White River III", "WHR3",
+    if_else(sample_sites == "White River IV", "WHR4",
+    if_else(sample_sites == "White River V", "WHR5",
+    if_else(sample_sites == "Wounded Knee I", "WOK1",
+    if_else(sample_sites == "Wounded Knee II", "WOK2",
+    if_else(sample_sites == "Wounded Knee III", "WOK3",
+    if_else(sample_sites == "Wounded Knee IV", "WOK4",
+    if_else(sample_sites == "Wounded Knee Lagoon (downstream)", "WOK_Lagoon", 
+            "other", missing = NULL))))))))))))))))))))))
+
+# 3d) bind the two parts together
+data.raw <- bind_rows(raw1, raw2)
+rm(raw1, raw2)
+
+# add subwatersheds
+data.raw <- data.raw %>%
+ mutate(subws = 
+   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
+     samp_site == "WCC3" | samp_site == "WOL1" |
+     samp_site == "WHR1" | samp_site == "WCC_Lagoon", 
+     "WhU",
+       if_else(samp_site == "POR1" | samp_site == "POR2" |
+         samp_site == "POR3" | samp_site == "POR_Lagoon" | 
+         samp_site == "WOK1" | samp_site == "WOK2" |
+         samp_site == "WOK3" | samp_site == "WOK4" |
+         samp_site == "WOK_Lagoon" | samp_site == "WHR2",
+         "WhW", 
+            if_else(samp_site =="AMH1" | samp_site == "RED1" |
+              samp_site == "MER1" | samp_site == "MER2" |
+              samp_site == "MER3" | samp_site == "MER4" |
+              samp_site == "NFL1" | samp_site == "WHR3",
+              "WhM",
+                 if_else(samp_site == "BEA1" | samp_site == "BEA2" |
+                    samp_site == "BEA3" | samp_site == "BEL1" |
+                    samp_site == "BEL2" | samp_site == "BEL_USGS" |
+                    samp_site == "LOD1" | samp_site == "COR1" |
+                    samp_site == "EAN1" | samp_site == "EAN2" | 
+                    samp_site == "WHR5" | samp_site == "POT1" |
+                    samp_site == "LON1" | samp_site == "CRA1" |
+                    samp_site == "RED1", "WhB", 
+                       if_else(samp_site == "LCC1" | samp_site == "WHR4" |
+                         samp_site == "PAS1" | samp_site == "PAS2" |
+                         samp_site == "PAS3" | samp_site == "PAS4" |
+                         samp_site == "BLP1" | samp_site == "BLP2" |
+                         samp_site == "BUZ1", 
+                         "WhP", 
+                            if_else(samp_site == "CHR1" |
+                                    samp_site == "CHR2", "ChR", 
+                                    "LWR" ))))))) 
+
+# 4) add ecoregions
+data.raw <- data.raw %>%
+ mutate(ecoregion = 
+   if_else(samp_site == "WCC1" | samp_site == "WCC2" |
+           samp_site == "POR1" | samp_site == "POR2" |
+           samp_site == "WOK2" | samp_site == "WOK3" | 
+           samp_site == "AMH1" | samp_site == "RED1" |
+           samp_site == "MER1" | samp_site == "MER2" |
+           samp_site == "MER3" | samp_site == "NFL1" |
+           samp_site == "BEA1" | samp_site == "BEA2" |
+           samp_site == "BEA3" | samp_site == "BEL1" |   
+           samp_site == "LOD1" | samp_site == "COR1" |
+           samp_site == "EAN1" | samp_site == "POT1" |
+           samp_site == "LON1" | samp_site == "CRA1" |
+           samp_site == "BUZ1" | samp_site == "RED1" |
+           samp_site == "LCC1" | samp_site == "BLP1" |
+           samp_site == "PAS1" | samp_site == "PAS2" |
+           samp_site == "BLP2" | samp_site == "WHR1",
+           "TabLand", 
+           if_else(samp_site == "WCC3" | samp_site == "POR3" |
+                   samp_site == "WOK4" | samp_site == "MER4" |
+                   samp_site == "BEL2" | samp_site == "PAS3" |
+                   samp_site == "WHR2" | samp_site == "WHR3" |
+                   samp_site == "WHR4" | samp_site == "WHR5" |
+                   samp_site == "EAN2", "BadLand",
+                   if_else(samp_site == "CHR1" | samp_site == "CHR2",
+                           "CheyRiv", 
+                           if_else(samp_site == "WCC_Lagoon" |
+                                   samp_site == "POR_Lagoon" |
+                                   samp_site == "WOK_Lagoon" |
+                                   samp_site == "BEL_USGS", "other",
+                                   "SandHil")))))
+```
+
+```{r munge.data.cleaner, warning=FALSE}
+# clean the loaded raw data by assigning data types, creating
+# consistant NA values, adding censored data as NA, adding additional
+# grouping variables, 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+data.cleaner <- data.raw %>%
+  mutate(flow_cfs = as.factor(flow_cfs)) %>%
+  mutate(high_low = as.factor(high_low)) %>%
+  mutate(notes = as.factor(notes)) %>%
+  mutate(date = mdy(date)) %>%
+  mutate(time = hm(time)) %>%
+  mutate(depth_ft = as.numeric(depth_ft)) %>%
+  mutate(width_ft = as.numeric(width_ft)) %>%
+  mutate(high_low = as.factor(high_low)) %>%
+  mutate(cond = if_else(cond == "error", "NA", cond)) %>%
+  mutate(cond = as.numeric(cond)) %>%
+  mutate(do = if_else(do == "error", "NA", do)) %>%
+  mutate(do = as.numeric(do)) %>%
+  mutate(turb = if_else(turb == "nd", "NA", turb)) %>%
+  mutate(turb = as.numeric(turb)) %>%
+  mutate(nh3 = if_else(nh3 == "nd", "0.025", nh3)) %>%
+  mutate(nh3 = as.numeric(nh3)) %>%
+  mutate(mg = if_else(mg == "nd", "0.5", mg)) %>%
+  mutate(mg = as.numeric(mg)) %>%
+  mutate(alk = as.numeric(alk)) %>%
+  rename(cl = ci) %>%
+  rename(f = fi) %>%
+  rename(so4 = s) %>%
+  mutate(so4 = as.numeric(so4)) %>%
+  mutate(nate = if_else(nate == "nd", "0.05", nate)) %>%
+  mutate(nate = as.numeric(nate)) %>%
+  mutate(op = if_else(op == "nd", "0.005", op)) %>%
+  mutate(op = as.numeric(op)) %>%
+  mutate(tp = if_else(tp == "nd", "0.005", tp)) %>%
+  mutate(tp = as.numeric(tp)) %>%
+  mutate(as = if_else(as == "<0.005", "0.0025", as)) %>%
+  mutate(as = as.numeric(as)) %>%
+  mutate(as = if_else(as < 0.05, 0.025, as)) %>%
+  mutate(cu = if_else(cu == "<0.005", "0.0025", cu)) %>%
+  mutate(cu = as.numeric(cu)) %>%
+  mutate(cu = if_else(cu < 0.05, 0.025, cu)) %>%
+  mutate(pb = if_else(pb == "nd", "<0.005", pb)) %>%
+  mutate(pb = if_else(pb == "<0.005", "0.0025", pb)) %>%
+  mutate(pb = as.numeric(pb)) %>%
+  mutate(pb = if_else(pb < 0.05, 0.025, pb)) %>%
+  mutate(hg = if_else(hg == "nd", "0", hg)) %>%
+  mutate(hg = as.numeric(hg)) %>%
+  mutate(hg = if_else(hg == 0, 0.00005, hg)) %>%
+  mutate(se = if_else(se == "<.002", "0", se)) %>%
+  mutate(se = as.numeric(se)) %>%
+  mutate(se = if_else(se == 0, 0.001, se)) %>%
+  mutate(ag = if_else(ag == "<0.005", "0.0025", ag)) %>%
+  mutate(ag = as.numeric(ag)) %>%
+  mutate(ag = if_else(ag < 0.05, 0.0025, ag))%>%
+  mutate(e_coli = if_else(e_coli == ">2419.6" |
+                            e_coli == ">4839.2" |
+                            e_coli == ">24196.0"|
+                            e_coli == ">9678.4",
+                            "NA",e_coli)) %>%
+  mutate(e_coli = as.numeric(e_coli)) %>%
+  mutate(total_coli = if_else(total_coli == ">2419.6" |
+                            total_coli == ">1419.6" |  
+                            total_coli == ">4839.2" |
+                            total_coli == ">24196.0"|
+                            total_coli == ">4339.2" |  
+                            total_coli == "<241960."|
+                            total_coli == "<4839.2" |  
+                            total_coli == ">9678.4",
+                           "NA",total_coli)) %>%
+  mutate(total_coli = as.numeric(total_coli)) %>%
+  mutate(fecal_coli = as.numeric(fecal_coli)) %>%
+  mutate(bod = if_else(bod == "<12", "12",
+                   if_else(bod == "<2", "2",    
+                       if_else(bod == "<3", "3",
+                           if_else(bod == "<4", "4",
+                               if_else(bod == "<6", "6",    
+                                   if_else(bod == ">3", "3", 
+                                       if_else(bod == "nd", "1", bod
+                                               )))))))) %>%
+  mutate(bod = as.numeric(bod)) %>%
+  mutate(tss = if_else(tss == "nd", "5", tss)) %>%
+  mutate(tss = as.numeric(tss)) %>%
+  mutate(samp_site = as.factor(samp_site)) %>%
+  mutate(subws = factor(subws, levels = 
+                   c("ChR","WhU","WhW","WhM","WhB","WhP","LWR"))) %>%
+  arrange(subws) %>%
+  mutate(phase = if_else(year > 2004, "Phase II", "Phase I"))%>%
+  mutate(phase = as.factor(phase)) %>%
+  filter(!is.na(year)) %>%
+  mutate(month = month(date)) %>%
+  mutate(month = as.factor(month)) %>%
+  mutate(fish_life = as.factor(if_else(samp_site =="WCC3" |
+              samp_site == "WOK1" | samp_site == "MER3" |
+                samp_site == "MER4", "Coldwater Marginal",
+                if_else(samp_site =="POR1", "Warmwater Semi-Perm",
+                        "Warmwater Permanant")))) %>%
+  mutate(temp_lim = if_else(fish_life == "Coldwater Marginal", 75,
+                if_else(fish_life =="Warmwater Semi-Perm", 90, 80))) %>%
+  mutate(ecoregion = as.factor(ecoregion)) %>%
+  mutate(k = as.numeric(k)) %>%
+  mutate(year = as.factor(year)) %>%
+  select(sort, latitude, longitude, sample_sites, samp_site, subws,
+         ecoregion, date, year, month, temp_c, ph, cond, alk, hardness,
+         tp, nite, nh3, ca, mg, na, k, cl, f, so4, nate, op, everything())
+  
+## Warnings:: NAs introduced by coercion: "NA" - need to find and fix
+
+# change zeros in cl to NA
+is.na(data.cleaner$cl) <- !data.cleaner$cl
+
+# Fix incorrect latitude
+data.cleaner <- data.cleaner %>%
+  mutate(latitude = if_else(samp_site == "POR1", 43.23253, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "CHR1", 43.66, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "CHR2", 43.67, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "LWR4", 43.17, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "COR1", 43.4, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "BEL2", 43.66493, latitude)) %>%
+  mutate(longitude = -1* longitude) %>%
+  mutate(longitude = if_else(samp_site == "BEL2", -101.8451, longitude))
+```
+
+```{r munge.data.cleaner2}
+# 'Clean' is subsetted from the cleaner raw data.  
+# We found three cases in which strong evidence exists for removal based 
+#   on the cases not meeting electroneutrality: 
+#       Cases # 69, 99, 632: BEL1-19950606, BLP1-19940712, WHR3-19941007.
+#  Very unusual Ca for POR3 case #1038 
+#  Very unusual Mg for WOK4 case #1098  
+#  Na >10x smaller for PAS3 case #446
+#  F > 10x smaller for WOK1 case #669
+#   SO4 > 200 mg/L for WOL1 case #666
+#  These cases were removed from the analysis.
+######  10x smaller  F  for WCC3 case #581
+######  Zero val for Cl for POR3 case #499
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+data.cleaner2 <- data.cleaner %>%
+  filter(sort != "69")   %>%
+  filter(sort != "99")   %>%
+  filter(sort != "632")  %>%
+  filter(sort != "1038") %>%
+  filter(sort != "1098") %>%
+  filter(sort != "446")  %>%
+  filter(sort != "679")  %>%
+  filter(sort != "666")  %>%
+  filter(sort != "228") 
+
+
+#  filter(sort != "509") %>%
+ # filter(sort != "555") %>%
+#  filter(sort != "581")
+# the last is to get rid of some VERY odd F observations >> 2 orders higher
+
+#  filter(sort != "581")  %>%
+#  filter(sort != "499")  %>%
+
+data.cleaner2 <- data.cleaner2 %>%
+  select(-flow_cfs) %>%
+  select(-high_low) %>%
+  select(-time) %>%
+  select(-d_w) %>%
+  select(-depth_ft) %>%
+  select(-width_ft) %>%
+  select(-temp_f) %>%
+  select(-temp_lim) %>%
+  select(-fish_life) %>%
+  select(-phase) %>%
+  select(-do) %>%
+  select(-notes) %>%
+  select(-turb) %>%
+  select(-e_coli) %>%
+  select(-total_coli) %>%
+  select(-fecal_coli) %>%
+  select(-bod) %>%
+  select(-tss)
+  
+# Data description 'data.cleaner2' data
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# sort:         uniaue variable showing unique sample id; integer
+# latitude:     decimal latitude; double
+# longitude:    decimal longitude; double
+# sample_sites: long name of the sampling station; factor
+# samp_site:    short name of the sample station; factor
+# ecoregion:    grouping variable showing ecoregion; factor
+# date:         sampling date; date
+# year:         year of sampling; integer or factor
+# month:        month of sampling; integer or factor
+# temp_c:       temperature in centigrade; numeric
+# pH:           measured pH in -log[H] units; numeric
+# cond:         conductivity in microSemens: numeric
+# alk:          alkalinity as CaCO3, mg/L; numeric
+# hardness:     hardness as CaCO3, mg/L; numeric
+# tp:           total phosphorus, mg/L; numeric
+# nite:         nitrite, mg/L, instable in oxygen; numeric
+# nh3:          ammonia, mg/L, instable in oxygen; numeric
+# ca:           calcium, mg/L, major cation; numeric
+# mg:           magnesium, mg/L, major cation; numeric
+# na:           sodium, mg/L, major cation; numeric
+# k:            potassium, mg/L, major cation; numeric
+# cl:           chloride, mg/L, major anion; numeric
+# f:            floride, mg/L, major anion; numeric
+# so4:          sulfate, mg/L, major anion; numeric
+# nate:         nitrate, mg/L, major anion; numeric
+# op:           orthophosphorus, major anion; numeric
+# the rest of the vars are trace metals
+```
+
+```{r group.variables}
+# One of the challenges with field variables is that instruments were
+#   not always calculated by technicians.  For this reason pH has a wide
+#   spread and is removed from the analysis.  EDA results were removed 
+#   from the commented sections.
+# Regional averages for Ca, Mg, K, F, SO4 were calcuated
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# group by ecorgion and summarize ca
+by_ecoreg_ca <- data.cleaner2 %>%
+   filter(ca != is.na(ca)) %>%
+   group_by(ecoregion) %>%
+   summarize(ca_ave = mean(ca))
+
+# group by ecorgion and summarize mg
+by_ecoreg_mg <- data.cleaner2 %>%
+   filter(mg != is.na(mg)) %>%
+   group_by(ecoregion) %>%
+   summarize(mg_ave = mean(mg))
+
+# group by ecorgion and summarize na
+by_ecoreg_na <- data.cleaner2 %>%
+   filter(na != is.na(na)) %>%
+   group_by(ecoregion) %>%
+   summarize(na_ave = mean(na))
+
+# group by ecorgion and summarize k
+ by_ecoreg_k <- data.cleaner2 %>%
+   filter(k != is.na(k)) %>%
+   group_by(ecoregion) %>%
+   summarize(k_ave = mean(k))
+
+# group by ecorgion and summarize f
+by_ecoreg_f <- data.cleaner2 %>%
+  filter(f != is.na(f)) %>%
+  group_by(ecoregion) %>%
+  summarize(f_ave = mean(f))
+
+# group by ecorgion and summarize so4
+by_ecoreg_so4 <- data.cleaner2 %>%
+  filter(so4 != is.na(so4)) %>%
+  group_by(ecoregion) %>%
+  summarize(so4_ave = mean(so4))
+
+by_ecoreg_cl <- data.cleaner2 %>%
+  filter(cl != is.na(cl)) %>%
+  group_by(ecoregion) %>%
+  summarize(cl_ave = mean(cl))
+```
+
+```{r munge.data}
+# the data.munged dataset includes the grouped variables calculated above
+data.munged <- data.cleaner2
+
+# create by_ecoregion columns for conservative vars with missing data
+# data.munged <- left_join(data.munged, by_ecoreg_mg_ca, by = "ecoregion")
+data.munged <- left_join(data.munged, by_ecoreg_ca,  by = "ecoregion") 
+data.munged <- left_join(data.munged, by_ecoreg_mg,  by = "ecoregion") 
+data.munged <- left_join(data.munged, by_ecoreg_na,  by = "ecoregion") 
+data.munged <- left_join(data.munged, by_ecoreg_k,   by = "ecoregion") 
+data.munged <- left_join(data.munged, by_ecoreg_f,   by = "ecoregion") 
+data.munged <- left_join(data.munged, by_ecoreg_so4, by = "ecoregion") 
+data.munged <- left_join(data.munged, by_ecoreg_cl,  by = "ecoregion")
+
+
+rm(by_ecoreg_ca, by_ecoreg_mg, by_ecoreg_f, by_ecoreg_k, 
+   by_ecoreg_so4, by_ecoreg_cl, by_ecoreg_na)
+
+data.munged <- data.munged %>%
+    mutate(ca = if_else(is.na(ca), ca_ave, ca)) %>%
+    mutate(mg = if_else(is.na(mg), mg_ave, mg)) %>%
+    mutate(na = if_else(is.na(na), na_ave, na)) %>%
+    mutate(k = if_else(is.na(k), k_ave, k)) %>%
+    mutate(f = if_else(is.na(f), f_ave, f)) %>%
+    mutate(so4 = if_else(is.na(so4), so4_ave, so4)) %>%
+    mutate(cl = if_else(is.na(cl), mg_ave, cl)) 
+  
+#test <- data.munged %>%
+#  filter(ecoregion == "BadLand")
+# summary(test)
+
+# remove cases with no data by removing is.na Ca & is.na Na
+# k is pretty conservative.  Assume k is similiar across sites within 
+# an ecoregion, as well as f, so4, and the ca_mg ratio
+
+data.munged <- data.munged %>%
+  mutate(no_anion = if_else(is.na(so4) & is.na(cl) & is.na(f), 1, 0)) %>%
+  filter(no_anion == 0) %>%
+  select(-no_anion) %>%  
+  mutate(no_cation = if_else(is.na(na) & is.na(ca), 1, 0)) %>%
+  filter(no_cation == 0) %>%
+  select(-no_cation) 
+ 
+#mutate(ca_mg_rat = ca/mg) %>%
+  #mutate(ca_mg_rat = round(ca_mg_rat, digits = 3)) 
+```
+
+```{r data.clean}
+# clean is subsetted from the data.munged data.
+# the "other" stations, which are downstream from lift stations are removed;
+# metals data is removed;
+# major anions and cations changed from  mg/l to meq/l by using MW and
+#   charge, op = HPO4^2-; mw HPO4 = 1+31+4*16 mg/mmol
+# Fix the zero Na and Cl values to half the next smallest value
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+data.clean <- data.munged %>%
+  filter(ecoregion != "other") %>%
+  select(-as)%>%
+  select(-ba)%>%
+  select(-cr)%>%
+  select(-cd)%>%
+  select(-cu)%>%
+  select(-fe)%>%
+  select(-pb)%>%
+  select(-mn)%>%
+  select(-hg)%>%
+  select(-ni)%>%
+  select(-se)%>%
+  select(-ag)%>%
+  select(-zn) %>%
+  mutate(ca_meq = round(2*ca/40, digits = 4)) %>%
+  mutate(mg_meq = round(2*mg/24.3, digits = 4)) %>%
+  mutate(na_meq = round(na/23, digits = 4)) %>%
+  mutate(k_meq = round(k/39, digits = 4)) %>%
+  mutate(cl_meq = round(cl/35.5, digits = 4)) %>%
+  mutate(f_meq = round(f/19, digits = 4)) %>%
+  mutate(so4_meq = round(so4/96, digits = 4)) %>%
+  mutate(nite_meq = round(nite/46, digits = 4)) %>%
+  mutate(nate_meq = round(nate/62, digits = 4)) %>%
+  mutate(op_meq = round(op/96, digits = 4))%>%
+  mutate(so4_meq = round(so4/96, digits = 4)) %>%
+  mutate(tp_meq = round(tp/96, digits = 4)) %>%
+  mutate(ntot_meq = nate_meq + nite_meq) %>%
+  mutate(nate_meq = if_else(is.na(ntot_meq) | ntot_meq > nate_meq, 
+                            ntot_meq, nate_meq)) %>%
+  mutate(cation = ca_meq + mg_meq + na_meq + k_meq) %>%
+  mutate(anion_part = cl_meq + f_meq + so4_meq) %>%
+  mutate(hco3 = cation - anion_part) %>%
+  mutate(anion = hco3 + anion_part) %>%
+  select(sort, latitude, longitude, samp_site, subws, ecoregion, 
+         year, month, temp_c, ph, cond, ca_meq, mg_meq,
+         na_meq, k_meq, cl_meq, f_meq, so4_meq, ntot_meq,
+         op_meq, tp_meq, hco3, cation, anion) %>%
+  mutate(na_meq = if_else(na_meq == 0, 0.07, na_meq)) %>%
+  mutate(cl_meq = if_else(cl_meq == 0, 0.005, na_meq)) %>%
+  mutate(so4_meq = if_else(so4_meq == 0, 0.0006, so4_meq)) %>%
+  mutate(ntot_meq = if_else(ntot_meq == 0, 0.0001, ntot_meq)) 
+```
+
+```{r data.transform}
+# Check best transformations for variables.  The goal is to calculate
+# Box Cox power transform parameters and create dataframes to combine 
+# using 'cbind'
+# We found the best transformations using an artificial covariate method
+# to estimate the Box-Cox power transformation parameter.  Several 
+# variables are still not normally distributed.
+# Following transformation the data were scaled and centered.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# calcium
+ca <- boxcoxnc(data.clean$ca_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+ca.df <- as.data.frame(ca$lambda.hat) 
+# lamda.hat = -2.7
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# magnesium
+mg <- boxcoxnc(data.clean$mg_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+mg.df <- as.data.frame(mg$lambda.hat) 
+# lambda.hat = -2.93
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# sodium
+na <- boxcoxnc(data.clean$na_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+na.df <- as.data.frame(na$lambda.hat) 
+# lambda.hat = 0.2
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# potassium
+k <- boxcoxnc(data.clean$k_meq, method = "sw", lam = seq(-3,3,0.01), 
+                plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+k.df <- as.data.frame(k$lambda.hat) 
+# lambda.hat = 1.25
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# chloride
+cl <- boxcoxnc(data.clean$cl_meq, method = "sw", lam = seq(-3,3,0.01), 
+               plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+cl.df <- as.data.frame(cl$lambda.hat) 
+# lambda.hat = 0.2
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# fluoride
+f <- boxcoxnc(data.clean$f_meq, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+f.df <- as.data.frame(f$lambda.hat) 
+# lambda.hat = 0.41
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# sulfate
+so4 <- boxcoxnc(data.clean$so4_meq, method = "sw", lam = seq(-3,3,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+so4.df <- as.data.frame(so4$lambda.hat) 
+#  lambda.hat : -0.05 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# bicarbonate
+hco3 <- boxcoxnc(data.clean$hco3, method = "sw", lam = seq(-3,4,0.01), 
+                 plotit = FALSE, alpha = 0.05, verbose = FALSE) 
+hco3.df <- as.data.frame(hco3$lambda.hat) 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+# ratio of calcium to magnesium
+# ca_mg_rat <- boxcoxnc(data.clean$ca_mg_rat, method = "sw", lam = seq(-3,4,0.01), 
+#                  plotit = FALSE, alpha = 0.05, verbose = TRUE) 
+# ca_mg_rat.df <- as.data.frame(ca_mg_rat$lambda.hat) 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# create a dataframe of the transformations
+#   bind the lambdas together
+lambda.val <- cbind(ca.df, cl.df, f.df, k.df, mg.df, na.df, so4.df)
+#   transpose the lambdas
+lambda.val <- t(lambda.val)
+
+#   munge the lamdas a bit
+lambda.val <- as.data.frame(lambda.val) %>%
+  rownames_to_column() %>%
+  rename(variable = rowname) %>%
+  rename(lamda_val = V1)
+
+# transform the input data to approach normal
+data.clean <- data.clean %>%
+  mutate(ca_tr = (ca_meq^ca$lambda.hat-1)/ca$lambda.hat) %>%
+  mutate(mg_tr = (mg_meq^mg$lambda.hat-1)/mg$lambda.hat) %>%
+  mutate(na_tr = (na_meq^na$lambda.hat-1)/na$lambda.hat) %>%
+  mutate(k_tr = (k_meq^k$lambda.hat-1)/k$lambda.hat) %>%
+  mutate(cl_tr = log(cl_meq)) %>%
+  mutate(f_tr = (f_meq^f$lambda.hat-1)/f$lambda.hat) %>%
+  mutate(hco3_tr = (hco3^hco3$lambda.hat-1)/hco3$lambda.hat) %>%
+  mutate(so4_tr = (so4_meq^so4$lambda.hat-1)/so4$lambda.hat) 
+#  mutate(ca_mg_tr = (ca_mg_rat^ca_mg_rat$lambda.hat-1)/ca_mg_rat$lambda.hat) 
+
+data.clean <- data.clean %>%
+  select(sort, latitude, longitude, samp_site, subws, ecoregion, year,
+         month, temp_c, ph, cond, ntot_meq, op_meq, tp_meq, everything())
+
+rm(ca, cl, f, k, mg, na, so4, ca.df, ca_mg_rat, ca_mg_rat.df, 
+   cl.df, f.df, k.df, mg.df, na.df, so4.df, hco3, hco3.df)
+rm(lambda.val,input.tr)
+
+# these are dry observation with duplicate sort numbers & one strange val. EAN2
+data.clean <- data.clean %>%
+  filter(sort != "1300") %>%
+  filter(sort != "1301") 
+```
+
+```{r pairs.plots}
+pairs.plot1 <- ggpairs(data.clean[, 15:22], 
+                        columnLabels = c("Ca", "Mg", "Na", "K", "Cl", "F", "SO4",
+                                         "HCO3"),
+                        title = "Major Anions and Cations - Untransformed Data") +
+               theme_tufte()
+
+
+
+pairs.plot2 <- ggpairs(data.clean[, 25:32], 
+                       columnLabels = c("Ca", "Mg", "Na", "K", "Cl", "F", "SO4",
+                                         "HCO3"),
+                       title = "Major Anions and Cations - Transformed Data") +
+               theme_tufte()
+
+pairs.plot2
+```
+
+```{r prepare.data.for.pca, warning=FALSE}
+# prepare to do a pca of major cations and anions by removing non-
+# relevant variables, such as date, temperature and field conductivity
+# (which has errors identified in the EDA).  Because of  missing values and 
+# instrument errors (e.g. the as these are the data we 
+# will be estimating
+
+input <- data.clean %>%
+    filter(latitude != is.na(latitude)) %>%
+    mutate(sort = as.numeric(sort)) %>%
+    mutate(samp_site = as.character(samp_site)) %>%
+    mutate(sample = str_c(samp_site, sort, sep = "_")) %>%
+    column_to_rownames(var = "sample") %>%
+    select(ca = ca_tr, mg = mg_tr, na = na_tr, k = k_tr, cl = cl_tr, f = f_tr,
+         hco3 = hco3_tr, so4 = so4_tr)
+
+input <- as.data.frame(scale(input))
+
+#summary(input)
+
+# calculate eigenvectors with all of the data
+cormat <- cor(input)
+eigdecomp <- as.data.frame(eigen(cormat))
+eigdecomp <- rownames_to_column(eigdecomp)
+
+eigdecomp <- eigdecomp %>%
+  mutate(rowname = as.integer(rowname))
+
+# plot the scree plot
+scree.plot <- ggplot(eigdecomp, aes(rowname,values)) +
+                geom_line() +
+                geom_point() +
+                geom_hline(yintercept = 1, lty=2) +
+                theme_tufte() +
+                labs(title = "Scree plot of PCA eigenvectors", 
+                y = "Eigenvector magnitude", x = "")
+
+#ggsave("scree_pca.png")
+rm(cormat, eigdecomp)
+```
+
+```{r multivar.test}
+# mardiaTest(input)
+# Mardia's Multivariate Normality Test 
+#--------------------------------------- 
+#   data : input 
+#   g1p            : 91.25715 
+#   chi.skew       : 16319.82 
+#   p.value.skew   : 0 
+
+#   g2p            : 274.9145 
+#   z.kurtosis     : 252.3795 
+#   p.value.kurt   : 0 
+
+#   chi.small.skew : 16375.61 
+#   p.value.small  : 0 
+
+#   Result          : Data are not multivariate normal. 
+#--------------------------------------- 
+```
+
+```{r pca, warning=FALSE}
+# conduct a pca using all of the data
+pca.input <- prcomp(input, scale = TRUE, center = TRUE) 
+
+# Tidy up the pca with 'broom'
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# augment the input data by adding the fitted model to all input
+pca.aug <- augment(pca.input, data = input) 
+
+# add back in factors
+pca.aug <- pca.aug %>%
+  mutate(.rownames = as.character(.rownames)) %>%
+  separate(.rownames, c("samp_site", "sort")) %>%
+  mutate(sort = as.integer(sort)) %>%
+  mutate(samp_site = as.factor(samp_site)) 
+
+names(pca.aug) <- c("samp_site","sort", "ca", "mg", "na", "k", "cl",
+                       "f", "hco3", "so4", "PC1", "PC2", "PC3", 
+                       "PC4", "PC5", "PC6", "PC7", "PC8") 
+
+ pca.aug <- pca.aug %>%
+  select(samp_site, sort, ca, mg, na, k, cl, f, hco3, so4, 
+         PC1, PC2, PC3)
+
+#grab factor variables
+factors <- data.clean %>%
+  select(samp_site, ecoregion, subws) %>%
+  distinct(samp_site, ecoregion, subws) %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "LCC1") %>%
+  filter(samp_site != "MER2") %>%
+  filter(samp_site != "MER4") %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WHR5") %>%
+  filter(samp_site != "WOK_Lagoon") 
+              
+pca.aug <- left_join(pca.aug, factors, by="samp_site")
+rm(factors)
+
+# arrange variables 
+pca.aug <- pca.aug %>%
+  select(samp_site, sort, PC1, PC2, PC3, everything()) %>%
+  mutate(samp_site = as.factor(samp_site)) %>%
+  mutate(ecoregion = as.factor(ecoregion))
+
+## slick sapply lapply routine to round the numbers
+is.num <- sapply(pca.aug, is.numeric)
+pca.aug[is.num] <- lapply(pca.aug[is.num], round, 2)
+
+##   returns results of summary(input.pca)
+pca.pcs <- tidy(pca.input, matrix = "pcs")  
+
+##  returns results of pca axes
+pca.var <- tidy(pca.input, matrix = "variables") 
+pca.var <- spread(pca.var, key = PC, value = value) %>%
+  select(1:4) # spread the eigenvalue df
+
+##  rename columns
+names(pca.var) <- c("Variable", "PC1", "PC2", "PC3")
+
+## slick sapply lapply routine to round the numbers
+is.num <- sapply(pca.var, is.numeric)
+pca.var[is.num] <- lapply(pca.var[is.num], round, 2)
+
+# create a table grob for plotting later
+tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
+tbl <- tableGrob(pca.var, rows=NULL, theme=tt) 
+
+# create a gathered variable
+pca.gath <- pca.aug %>%
+  filter(ecoregion != is.na(ecoregion)) %>%
+  gather(key = "meas", value = "val", PC1:so4)
+
+rm(is.num)
+```
+
+```{r plot.pca.axes}
+ord.plot <- autoplot(pca.input, data = pca.aug, shape = "ecoregion", 
+                     loadings = TRUE, loadings.label = TRUE) +
+            ggtitle("Ordinate plot of cations and anions by ecoregion") +
+            scale_y_reverse() +
+            xlab("<- Increasing conductivity (52% of var.)") +
+            ylab("Low to high hardness (20% of var.) ->") +
+            theme_tufte() +
+            theme(legend.position = "bottom")
+
+#ggsave("ordinate_plot.png")
+ord.plot
+#scree.plot
+```
+
+```{r pca.interp}
+# Badl WhU and WhM have high var of ca & mg
+# Tabl WhU and WhM have high var of ca & mg
+# Tabl WhU have high SO4
+# big hardness variance at WhU and WhW, smaller mean for F at WhM
+# high f cluster at COR, CRA, EAN, LOD, LON
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Visual interp lead to breaking the clusters up at these point
+# Break Badlands along PC1 > 0.5
+# Break Tablelands along PC2 > -1 @ Tabl @ PC3 = 1
+### Break Sandhills along PC2 > - 2
+
+# split up the regions
+eda.bad1 <- pca.aug %>%
+  filter(ecoregion == "BadLand")
+
+eda.chr1 <- pca.aug %>%
+  filter(ecoregion == "CheyRiv")
+
+eda.snd1 <- pca.aug %>%
+  filter(ecoregion == "SandHil")
+
+eda.tab1 <- pca.aug %>%
+  filter(ecoregion == "TabLand")
+
+#test <- eda.tab1 %>%
+#  filter(subws == "WhB")
+#ggplot(test, aes(samp_site, PC3)) +
+#  geom_boxplot()
+
+# mutate the regions
+eda.bad1 <- eda.bad1 %>%
+    mutate(group = if_else(PC2 > 1.0, "Badl_soft",
+                "Badl_hard"))
+
+eda.tab1 <- eda.tab1 %>%
+    mutate(group = if_else(PC3 > 2, "Tabl_LoF",  
+                      if_else(PC2 > 0, "Tabl_soft",
+                        "Tabl_hard")))
+
+eda.chr1 <- eda.chr1 %>%
+  mutate(group = "ChRiv")
+
+eda.snd1 <- eda.snd1 %>%
+  mutate(group = "SandHil")
+
+# rejoin the regions
+pca.aug <- rbind(eda.bad1, eda.chr1, eda.tab1, eda.snd1)
+
+# remove the temporary vars
+rm(eda.bad1, eda.chr1, eda.snd1, eda.tab1, eda.bear)
+```
+
+```{r make.station.map, warning=FALSE}
+# create a table of locs
+locs <- data.clean %>%
+  select(latitude, longitude, samp_site) %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "LCC1") %>%
+  filter(samp_site != "MER2") %>%
+  filter(samp_site != "MER4") %>%
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WHR5") %>%
+  filter(samp_site != "WOK_Lagoon") %>%
+  mutate(samp_site = as.factor(samp_site)) %>%
+  distinct(samp_site, latitude, longitude)
+
+# join the lat lons to the pca.aug
+pca.aug <- left_join(pca.aug, locs, by = "samp_site")
+
+# get a map from Google Maps
+map1 <- suppressMessages(
+  get_map(location = c(-102.1, 43.3206149), zoom = 9,
+  maptype="terrain")) 
+
+# ggsave("map.prior.png")
+
+# make a map of priors
+map.prior <- ggmap(map1) + 
+               geom_point(aes(x = longitude, y = latitude, 
+                           shape = ecoregion, color = subws), 
+                           data = pca.aug, size = 4) +
+                 theme_tufte() +
+                 ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+                 subtitle = "Southwestern South Dakota") +
+                 theme(legend.position = "right")
+
+# Take out Chey River to be able to visulize
+pca.no.chr <- pca.aug %>%
+  filter(subws  != "ChR")
+
+map.post1 <- ggmap(map1) + 
+             geom_point(aes(x = longitude, y = latitude, 
+                           shape = group, color = group), 
+                           data = pca.no.chr, size = 4) +
+             theme_tufte() +
+             ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+             subtitle = "Southwestern South Dakota") +
+             theme(legend.position = "right")
+
+map.post1
+
+```
+
+```{r create_supervised_groups}
+# create an input group
+#data.lda <- data.munged %>%
+#  select(sort, ca:so4) 
+
+data.super <- data.munged %>%
+  select(sort:so4) %>%
+  select(-sample_sites) %>%
+  select(-tp) %>%
+  select(-nite) %>%
+  select(-nh3) %>%
+  select(-hardness) %>%
+  select(-ph) %>%
+  select(-cond) %>%
+  select(-alk) %>%
+  filter(samp_site != "MER2")%>% 
+  filter(samp_site != "LCC1")
+  
+# select a classifier
+super <- pca.aug %>%
+  select(sort, PC1, PC2, PC3, group)
+
+# join the classifiers
+data.super <- left_join(data.super, super, by = "sort")
+
+data.super$group <- as.factor(data.super$group)
+#rm(super, input)
+
+#rownames(data.lda) <- NULL
+#data.lda <- data.lda %>%
+#    column_to_rownames(var = "sort") 
+```
+
+```{r lda.xval}
+# this was in the header: asis = TRUE, fig.height = 2, fig.width = 2
+# This lda model uses cross validation and predicts group membership
+lda.xval <- lda(group ~ ca + mg + na + k + cl + f + so4, 
+                data = pca.aug, CV = TRUE)
+
+# pull out the classes predicted by LDA and bind them to pca.aug
+class <- as.data.frame(lda.xval$class)
+
+pca.aug <- cbind(pca.aug, class)
+
+pca.aug <- pca.aug %>%
+  rename (group2 = `lda.xval$class`) 
+
+# create a new var for misclassified items
+pca.aug <- pca.aug %>%  
+  mutate(misclass = if_else(group == group2, "0", "1"))
+
+perc.misclass <- pca.aug %>%
+  filter(misclass == 1) %>%
+  mutate(misclass = as.numeric(misclass))
+
+perc.not.misclass <- pca.aug %>%
+  filter(misclass == 0) %>%
+  mutate(misclass = as.numeric(misclass))
+
+
+# the number of correctly classified observations is
+# (1066-92)/1065 = 0.914
+
+
+misclass.obs <- group_by(perc.misclass, samp_site) %>%
+summarise(count = n(), subws = first(subws), group = first(group), 
+          group2 = first(group2), ecoregion = first(ecoregion))
+
+misclass.subws <- group_by(misclass.obs, subws) %>%
+summarise(sum = sum(count), group = first(group), group2 = first(group2),
+          ecoregion = first(ecoregion))        
+
+
+
+```
+
+```{r lda.supervised.means}
+# This lda model creates the LDA means and scales
+lda.super <- lda(group ~ ca + mg + na + k + cl + f + so4 + hco3, 
+                data = pca.aug)
+lda.super
+#lda.super
+# Proportion of trace:
+#   LD1    LD2    LD3    LD4    LD5    LD6 
+# 0.6995 0.1691 0.0788 0.0363 0.0154 0.0009 
+
+# The first three LDA axes contain
+# 0.6995 + 0.1691 + 0.0388 = 0.9074
+
+# create a table of means
+lda.means <- as.data.frame(lda.super$means)
+lda.means <- lda.means %>%
+  rownames_to_column() %>%
+  rename(group = rowname) %>%
+  mutate(ca = round(ca, digits = 3)) %>%
+  mutate(mg = round(mg, digits = 3)) %>%
+  mutate(na = round(na, digits = 3)) %>%
+  mutate(k = round(k, digits = 3)) %>%
+  mutate(cl = round(cl, digits = 3)) %>%
+  mutate(so4 = round(so4, digits = 3)) %>%
+  mutate(f = round(f, digits = 3)) 
+
+lda.means.gath <- lda.means %>%
+  gather(key = chem, value = conc, -group)
+
+ggplot(lda.means.gath, aes(chem, conc)) +
+  geom_boxplot() +
+  facet_grid(.~ group) +
+  theme_bw() +
+  ggtitle("Variation in WQ parameters by group",
+             subtitle = "group means") +
+  ylab("Relative Concentrations") +
+            xlab("") 
+```
+
+
+```{r lda.analysis}
+
+lda.axes  <- as.data.frame(lda.super$scaling) %>%
+  rownames_to_column(var = "parameter") %>% 
+  mutate(LD1 = round(LD1, digits = 3))  %>%
+  mutate(LD2 = round(LD2, digits = 3))  %>%
+  mutate(LD3 = round(LD3, digits = 3))  %>%
+  select(-LD4) %>%
+  select(-LD5) %>%
+  select(-LD6) 
+
+# svd	are the singular values, which give the ratio of the between- and 
+# within-group standard deviations on the linear discriminant variables. 
+# Their squares are the canonical F-statistics.
+lda.svd   <- as.data.frame(lda.super$svd)
+
+# predicted lda values for each observation
+lda.hat <- predict(lda.super)
+lda.hat.df <- as.data.frame(lda.hat$x)
+
+lda.hat.df <- lda.hat.df %>%
+  mutate(LD1 = round(LD1, digits = 3))  %>%
+  mutate(LD2 = round(LD2, digits = 3))  %>%
+  mutate(LD3 = round(LD3, digits = 3))  %>%
+  select(-LD4) %>%
+  select(-LD5) %>%
+  select(-LD6) 
+
+pca.aug <- as.data.frame(cbind(pca.aug, lda.hat.df))
+
+rm(lda.hat, lda.hat.df, locs)
+
+lda.pl1 <- ggplot(pca.aug, aes(LD1, LD2)) + 
+             geom_point(aes(color = group)) +
+             theme_tufte()
+
+lda.pl2 <- ggplot(pca.aug, aes(LD1, LD3)) + 
+             geom_point(aes(color = group)) +
+             scale_y_reverse() +
+             theme_tufte()
+
+lda.pl3 <- ggplot(pca.aug, aes(LD3, LD2)) + 
+             geom_point(aes(color = group)) +
+             scale_x_reverse() +
+             theme_tufte()
+
+
+lda.pl1
+
+
+
+
+```
+
+
+```{r density.plot.lda}
+#  Plot as a density plot
+dp1 <- 
+  ggplot(pca.aug, aes(x=LD1)) + 
+  geom_density(aes(group = group, colour= group, fill= group), alpha=0.5) +
+  theme_tufte() +
+  scale_x_reverse() +
+  ggtitle("Group Separation Along LDA Axis 1") +
+  xlab("Inc. NaCl & KCl relative to CaCO3 (70% of var.) ->") +
+  theme(legend.position = "bottom")
+
+dp1
+
+q1 <- ggplot(pca.aug, aes(LD2, mg)) +
+  geom_point(aes(color = group))
+
+q1
+
+dp2 <- ggplot(pca.aug, aes(x=LD2)) + 
+  geom_density(aes(group = group, colour= group, fill= group), alpha=0.5) +
+  theme_tufte() +
+  ggtitle("Group Separation Along LDA Axis 2") +
+  xlab("<- Inc. Ca & Mg conc. (17% of var.)") +
+  theme(legend.position = "bottom")
+
+dp2
+
+dp3 <- ggplot(pca.aug, aes(x=LD3)) + 
+  geom_density(aes(group = group, colour= group, fill= group), alpha=0.5) +
+  theme_tufte() +
+  ggtitle("Wine Class Separation Along LDA Axis 3") +
+  xlab("Inc. Mg relative to Ca (64% of var.) ->")
+  theme(legend.position = "bottom")
+
+dp3
+
+dp4 <- ggplot(pca.aug, aes(PC1, LD1)) + 
+  geom_point(aes(color = group)) +
+  geom_smooth() +
+  theme_tufte() +
+  ggtitle("Contrasts in LDA vs PCA Axes for Wines") 
+
+grid.arrange(dp1, q1, ncol = 2)
+# LD1 segragates k with sandhills being low
+```
+
+```{r predict.unknown.wqs}
+# prepare for a join
+wq <- data.munged
+
+wq <- wq %>%
+  select(-ecoregion) %>%
+  select(-subws) %>%
+  select(-latitude) %>%
+  select(-longitude) %>% 
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WOK_Lagoon") %>%
+  filter(samp_site != "BEL_USGS")
+
+wq <- full_join(wq, pca.aug,by = "sort")
+
+# clean up the vars
+wq <- wq %>%
+  rename(samp_site = samp_site.x) %>%
+  select(-samp_site.y) %>%
+  rename(ca_norm = ca.y) %>%
+  rename(mg_norm = mg.y) %>%
+  rename(na_norm = na.y) %>%
+  rename(k_norm = k.y) %>%
+  rename(cl_norm = cl.y) %>%
+  rename(f_norm = f.y) %>%
+  rename(so4_norm = so4.y) %>%
+  rename(ca = ca.x) %>%
+  rename(mg = mg.x) %>%
+  rename(na = na.x) %>%
+  rename(k = k.x) %>%
+  rename(cl = cl.x) %>%
+  rename(f = f.x) %>%
+  rename(so4 = so4.x) %>%
+  mutate(nate = if_else(nate == 0, 0.05, nate)) %>%
+  mutate(nite = if_else(nite == 0, 0.05, nite)) %>%
+  mutate(op = if_else(op == 0, 0.005, op)) %>%
+  mutate(tp = if_else(tp == 0, 0.005, tp)) %>%
+  mutate(ca_meq = round(2*ca/40, digits = 4)) %>%
+  mutate(mg_meq = round(2*mg/24.3, digits = 4)) %>%
+  mutate(na_meq = round(na/23, digits = 4)) %>%
+  mutate(k_meq = round(k/39, digits = 4)) %>%
+  mutate(cl_meq = round(cl/35.5, digits = 4)) %>%
+  mutate(f_meq = round(f/19, digits = 4)) %>%
+  mutate(so4_meq = round(so4/96, digits = 4)) %>%
+  mutate(nite_meq = round(nite/46, digits = 4)) %>%
+  mutate(nate_meq = round(nate/62, digits = 4)) %>%
+  mutate(op_meq = round(op/96, digits = 4))%>%
+  mutate(so4_meq = round(so4/96, digits = 4)) %>%
+  mutate(tp_meq = round(tp/96, digits = 4)) %>%
+  mutate(ntot_meq = nate_meq + nite_meq) %>%
+  mutate(group = as.factor(group)) %>%
+  mutate(subws = as.factor(subws)) %>%
+  select(sort, samp_site, group, group2, ecoregion, nate, nite, nate_meq, ntot_meq, 
+         ca_norm, ca_meq, mg_meq, na_meq, f_meq, everything()) %>%
+  filter(samp_site != "LCC1")
+
+#mutate(nate_meq = if_else(is.na(ntot_meq) | ntot_meq > nate_meq, 
+#                            ntot_meq, nate_meq)) %>% 
+
+# select(-group2) %>%
+wq <- wq %>%
+        mutate(group_fin = 
+        if_else(samp_site == "AMH1", "Tab_H",
+        if_else(samp_site == "BEA1", "Tab_H",
+        if_else(samp_site == "BEA2", "Tab_H",   
+        if_else(samp_site == "BEA3", "Tab_H",
+        if_else(samp_site == "BEL1", "Tab_H",
+        if_else(samp_site == "BEL2", "Bad_S",
+        if_else(samp_site == "BLP1", "Tab_H",
+        if_else(samp_site == "BLP2", "Tab_H",
+        if_else(samp_site == "BUZ1", "Tab_S",
+        if_else(samp_site == "CHR1", "ChRiv",
+        if_else(samp_site == "CHR2", "ChRiv",
+        if_else(samp_site == "COR1", "Tab_H",     
+        if_else(samp_site == "CRA1", "Tab_LoF",
+        if_else(samp_site == "EAN1", "Tab_LoF",
+        if_else(samp_site == "EAN2", "Bad_S",
+        if_else(samp_site == "LWR1", "SandH",
+        if_else(samp_site == "LWR2", "SandH",
+        if_else(samp_site == "LWR3", "SandH",
+        if_else(samp_site == "LWR4", "SandH",
+        if_else(samp_site == "LOD1", "Tab_S",
+        if_else(samp_site == "LON1", "Tab_LoF",           
+        if_else(samp_site == "MER1", "Tab_H",
+        if_else(samp_site == "MER2", "Tab_H",
+        if_else(samp_site == "MER3", "Tab_H",
+        if_else(samp_site == "MER4", "Bad_H",
+        if_else(samp_site == "NFL1", "Tab_H",
+        if_else(samp_site == "PAS1", "Tab_H",
+        if_else(samp_site == "PAS2", "Tab_S",     
+        if_else(samp_site == "PAS3", "Bad_S",
+        if_else(samp_site == "POR1", "Tab_H", 
+        if_else(samp_site == "POR2", "Tab_H",        
+        if_else(samp_site == "POR3", "Bad_S",
+        if_else(samp_site == "POT1", "Tab_S",
+        if_else(samp_site == "RED1", "Tab_S",
+        if_else(samp_site == "WCC1", "Tab_H",
+        if_else(samp_site == "WCC2", "Tab_H",
+        if_else(samp_site == "WCC3", "Bad_H",
+        if_else(samp_site == "WOL1", "SandH",
+        if_else(samp_site == "WHR1", "Tab_H",
+        if_else(samp_site == "WHR2", "Bad_H",      
+        if_else(samp_site == "WHR3", "Bad_S",
+        if_else(samp_site == "WHR4", "Bad_S",
+        if_else(samp_site == "WHR5", "Bad_S",
+        if_else(samp_site == "WOK1", "SandH",
+        if_else(samp_site == "WOK2", "Tab_H",
+        if_else(samp_site == "WOK3", "Tab_H",
+        if_else(samp_site == "WOK4", "Bad_S",
+            "other", missing = NULL))))))))))))))))))))))))))))))))))))))))))))))))       
+```
+
+```{r final.plot}
+wq.no.chr <- wq %>%
+  filter(group_fin != "ChRiv")
+map.post2 <- ggmap(map1) + 
+             geom_point(aes(x = longitude, y = latitude, 
+                           shape = group_fin, color = group_fin), 
+                           data = wq.no.chr, size = 4) +
+             theme_tufte() +
+             ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+             subtitle = "Southwestern South Dakota") +
+             theme(legend.position = "right")
+map.post2
+```
+
+
+
+```{r multimetrics}
+
+multimetrics <- read_csv("~/Google Drive/R-files-consolidated/Prr_chem/data/multimetrics.csv")
+
+multimetrics <- multimetrics %>%
+  clean_names() %>%
+  select(-x23) %>%
+  select(-x24) %>%
+  mutate(decade = if_else(year < 2000, 1990, 2000))
+
+multi.90s <- multimetrics %>%
+  filter(year < 2000)
+
+multi.00s <- multimetrics %>%
+  filter(year > 2000)
+
+# summary(multi.90s$total_score_old)
+#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#    3.0    15.0    21.0    20.8    27.0    39.0 
+
+# summary(multi.00s$total_score_old)
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#   0.00    9.00   16.50   16.92   24.00   36.00
+
+# summary(multi.90s$new_score)
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+#   0.00    9.00   15.00   14.32   21.00   30.00       1 
+
+# summary(multi.00s$new_score)
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#   0.00    3.00    9.00   10.23   18.00   33.00 
+
+multimetrics <- multimetrics %>%
+mutate(year = as.factor(year)) 
+```
+
+
+```{r multi.plots}
+m1 <- ggplot(multimetrics, aes(year,total_score_old)) +
+        geom_boxplot(aes(color = decade)) +
+        geom_hline(yintercept = 21, color = "black") +
+        geom_hline(yintercept = 16.5, color = "royalblue") +
+        theme_tufte() +
+        labs(title = "Changes in Pine Ridge Reservation stream biotic integrity scores over two decades",
+          subtitle = "The horizontal lines represent decadal mean values with black as 1990s scores and blue as 2000s scores.",
+          x = "",
+          y = "multimetric score") +
+        theme(legend.position = "none")
+
+#ggsave("multimetric.boxplot.png")
+```
+
+```{r join.multimetrics}
+# wq <- wq %>%
+#   mutate(samp_yr = str_c(samp_site, year, sep = "_"))
+
+multimetrics <- multimetrics %>%
+   mutate(samp_yr = str_c(samp_site, year, sep = "_"))
+  
+multi_wq <- left_join(wq, multimetrics)
+
+multi_wq <- multi_wq %>%
+  mutate(Year = as.numeric(year)) %>%
+  filter(sort != "1224")
+
+
+```
+
+```{r lm}
+lm1 <- lm(total_score_old ~ nate_meq + tp_meq + ca_meq + mg_meq + f_meq +
+            k_meq + na_meq + cl_meq + so4_meq + hco3 + group_fin + subws + 
+            year,
+          data = multi_wq)
+summary(lm1)
+# Adjusted R-squared:  0.3963 
+
+# removed so4
+lm2 <- lm(total_score_old ~ nate_meq + ca_meq + mg_meq + f_meq +
+            k_meq + na_meq + cl_meq + tp_meq + hco3 + group_fin + subws + 
+            year,
+          data = multi_wq)
+summary(lm2)
+# Adjusted R-squared:  0.3985 
+
+# removed ca
+lm3 <- lm(total_score_old ~ nate_meq + tp_meq + mg_meq + f_meq +
+            k_meq + na_meq + cl_meq + hco3 + group_fin + subws + 
+            year,
+          data = multi_wq)
+summary(lm3)
+# Adjusted R-squared:  0.4006
+
+# removed k
+lm4 <- lm(total_score_old ~ nate_meq + tp_meq + mg_meq + f_meq +
+            na_meq + cl_meq + hco3 + group_fin + subws + 
+            year,
+          data = multi_wq)
+summary(lm4)
+# Adjusted R-squared:  0.4026
+
+# removed f
+lm5 <- lm(total_score_old ~ nate_meq + tp_meq + mg_meq + 
+            na_meq + cl_meq + hco3 + group_fin + subws + year,
+          data = multi_wq)
+summary(lm5)
+# Adjusted R-squared:  0.4046 
+
+# removed tp
+lm6 <- lm(total_score_old ~ nate_meq + mg_meq + 
+            na_meq + cl_meq + hco3 + group_fin + subws + year,
+          data = multi_wq)
+summary(lm6)
+# Adjusted R-squared:  0.4063 
+
+# removed cl
+lm7 <- lm(total_score_old ~ nate_meq + mg_meq + 
+            na_meq + hco3 + group_fin + subws + year,
+          data = multi_wq)
+summary(lm7)
+# Adjusted R-squared:  0.4036
+
+# removed na
+lm8 <- lm(total_score_old ~ nate_meq + mg_meq + 
+            hco3 + group_fin + subws + year,
+          data = multi_wq)
+summary(lm8)
+ # Adjusted R-squared:  0.4019 
+
+# removed hco3
+lm9 <- lm(total_score_old ~ nate_meq + mg_meq + 
+            group_fin + subws + year,
+          data = multi_wq)
+summary(lm9)
+ # Adjusted R-squared:  0.3915
+
+# removed subws
+lm10 <- lm(total_score_old ~ nate_meq + mg_meq + 
+            group_fin + year,
+          data = multi_wq)
+summary(lm10)
+# djusted R-squared:  0.2664 
+
+# removed group_fin
+lm11 <- lm(total_score_old ~ nate_meq + group_fin +
+            year,
+          data = multi_wq)
+summary(lm11)
+
+
+multi_wq <- multi_wq %>%
+  mutate(np_rat = nate_meq/tp) %>%
+  filter(!is.na(ecoregion))
+
+
+ggplot(multi_wq, aes(Year, np_rat)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_y_log10() +
+  facet_grid(.~ecoregion) +
+  theme_tufte()
+
+  
+
+
+test <- multi_wq %>%
+  filter(ecoregion != "ChRiv")  
+
+ggplot(test, aes(mg_meq, total_score_old)) +
+  geom_point(aes(color = subws)) +
+  geom_smooth() 
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r create.group2, eval = FALSE}
+# split up the regions b
+eda.bad1 <- pca.aug %>%
+  filter(ecoregion == "BadLand")
+
+eda.chr1 <- pca.aug %>%
+  filter(ecoregion == "CheyRiv")
+
+eda.snd1 <- pca.aug %>%
+  filter(ecoregion == "SandHil")
+
+eda.tab1 <- pca.aug %>%
+  filter(ecoregion == "TabLand")
+
+# mutate the regions
+eda.bad1 <- eda.bad1 %>%
+    mutate(group = if_else(latitude < -102.3, "Badl_hard",  
+                        "Badl_soft"))
+
+eda.chr1 <- eda.chr1 %>%
+  mutate(group = "ChRiv")
+
+eda.snd1 <- eda.snd1 %>%
+  mutate(group = "SandHil")
+
+eda.tab1 <- eda.tab1 %>%
+    mutate(group = if_else(latitude < -102.3, "Badl_mix",  
+                        "Badl_soft"))
+
+# rejoin the regions
+pca.aug <- rbind(eda.bad1, eda.chr1, eda.tab1, eda.snd1)
+
+# remove the temporary vars
+rm(eda.bad1, eda.chr1, eda.snd1, eda.tab1, eda.bear)
+   
+
+#p1 <- ggplot(eda.bad1, aes(PC1, PC2)) +
+#      geom_point() +
+#      ylab("High to Low Ions (51% of var.)") +
+#      theme_tufte() 
+
+#p2 <- ggplot(eda.bad1, aes(subws, PC2)) +
+#      geom_boxplot() +
+#      theme_tufte() +
+#      ylab("High to Low Hardness (18% of var.) ->")
+
+#p3 <- ggplot(eda.bad1, aes(subws, PC3)) +
+#      geom_boxplot() +
+#      theme_tufte() +
+#      ylab("High to Low F (13% of var.) ->")
+
+#grid.arrange(p1, p2, p3, ncol = 3)
+
+# eda.bear <- eda.tab1 %>%
+#  filter(subws == "WhB")
+
+#ggplot(eda.snd1, aes(PC2, PC3)) +
+#      geom_point(aes(color = subws)) +
+#      theme_tufte()  #
+#     xlab("High to Low Hardness (18% of var.) ->") +
+#      ylab("High to Low F (13% of var.) ->")
+
+#eda.tab2 <- pca.gath %>%
+#  filter(ecoregion == "TabLand")
+
+#eda.bad2 <- pca.gath %>%
+#  filter(ecoregion == "BadLand")
+
+#eda.chr2 <- pca.gath %>%
+#  filter(ecoregion == "CheyRiv")
+
+#eda.snd2 <- pca.gath %>%
+ # filter(ecoregion == "SandHil")
+
+#ggplot(eda.snd2, aes(subws, val)) +
+#  geom_point() +
+#  facet_wrap(~meas) +
+#  theme_classic() 
+
+# mutate(final = str_c(group, ecoregion, sep = "_")) %>%
+#  mutate(final = 
+#    if_else(final == "Badl_E_BadLand", "Badl_E",
+#      if_else(final == "Badl_W_BadLand", "Badl_W",
+#        if_else(final == "CheyRiv_CheyRiv", "CheyRiv", 
+#            if_else(final == "Other_TabLand", "Tbl_hiHCO3", 
+#              if_else(final == "Tabl_LoHCO3_TabLand", "Tbl_loHCO3", 
+#                if_else(final == "Tabl_LoF_TabLand", "Tbl_loF", 
+#                   "SandH"))))))) %>%
+#  mutate(final = as.factor(final)) 
+
+# pca.interp.sub <- pca.interp %>%
+#  filter(ecoregion != "BadLand") %>%
+#  filter(ecoregion != "CheyRiv")
+
+# group by samp_site and summarize
+pca.grouped <- pca.aug %>%
+  group_by(samp_site, group, ecoregion, subws) %>%
+  summarize(ca = mean(ca), mg = mean(mg), na = mean(na), 
+            k = mean(k), cl = mean(cl), f = mean(f), 
+            so4 = mean(so4), hco3 = mean(hco3),
+            PC1 = mean(PC1), PC2 = mean(PC2),
+            PC3 = mean(PC3), lat = mean(latitude), 
+            lon = mean(longitude), count = n()) %>%
+  ungroup() %>%
+  mutate(group = as.character(group)) %>%
+  mutate(samp_site = as.character(samp_site)) %>%
+  mutate(ecoregion = as.character(ecoregion))  %>%
+  select(samp_site, group, count) %>%
+  spread(group,count) 
+
+pca.groups<- remove_rownames(pca.groups)
+pca.groups <- column_to_rownames(pca.groups, var = "samp_site") 
+pca.groups[is.na(pca.groups)] <- 0
+pca.groups <- rownames_to_column(pca.groups, var = "samp_site") 
+
+pca.groups <-pca.groups %>%
+  rowwise() %>% 
+  mutate(correct = max(Badl_hard, Badl_soft, ChRiv, SandHil, Tabl_hard, 
+                       Tabl_LoF, Tabl_soft)) 
+
+# The classification rate is 532/591 = 90%
+rm(final2, pca.gr.count, pca.gr.spread, map)
+```
+
+```{r make.station.map, eval =FALSE}
+# found some errors on the table
+map <- data.clean %>%
+  mutate(latitude = if_else(samp_site == "CHR1", 43.66, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "CHR2", 43.67, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "BEL2", 43.66493, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "LWR4", 43.17, latitude)) %>%
+  mutate(latitude = if_else(samp_site == "COR1", 43.4, latitude)) %>%
+  mutate(longitude = -1* longitude)
+# Need to change BUZ1 to subws == "WhP"
+
+# get a map from Google Maps
+map1 <- suppressMessages(
+  get_map(location = c(-102.1, 43.3206149), zoom = 9,
+  maptype="terrain")) 
+
+station.map <- ggmap(map1) + 
+                 geom_point(aes(x = longitude, y = latitude, 
+                                shape = ecoregion, color = subws), 
+                            data = map, size = 4) +
+                 theme_tufte() +
+                 ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
+                 subtitle = "Southwestern South Dakota") +
+                 theme(legend.position = "right")
+# ggsave("map.prior.png")
+rm(data.clean)
+```
+
+```{r map.results.calc, eval = FALSE}
+locs <- map %>%
+  select(latitude, longitude, samp_site) %>%
+  distinct(samp_site, latitude, longitude) %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "LCC1") %>%
+  filter(samp_site != "MER2") %>%
+  filter(samp_site != "MER4") %>%
+  filter(samp_site != "BEL_USGS") %>%
+  filter(samp_site != "POR_Lagoon") %>%
+  filter(samp_site != "WCC_Lagoon") %>%
+  filter(samp_site != "WHR5") %>%
+  filter(samp_site != "WOK_Lagoon") %>%
+  mutate(samp_site = as.factor(samp_site))
+
+locs <- locs %>%
+  mutate(longitude = if_else(samp_site == "BEL2", -101.8251, longitude)) %>%
+  unique() %>%
+  mutate(samp_site = as.character(samp_site))
+
+# join the lat lons to the pca interp
+pca.interp <- left_join(pca.interp, locs, by = "samp_site")
+pca.interp <- pca.interp %>%
+  mutate(samp_site = as.factor(samp_site)) %>%
+  mutate(group = as.factor(group))
+
+# group by samp_site and summarize
+pca.grouped <- pca.interp %>%
+  group_by(samp_site, final, ecoregion, subws) %>%
+  summarize(ca = mean(ca_tr), mg = mean(mg_tr), na = mean(na_tr), 
+            k = mean(k_tr), cl = mean(cl_tr), f = mean(f_tr), 
+            so4 = mean(so4_tr), ca_mg_rat = mean(ca_mg_rat),
+            hco3 = mean(hco3), cation = mean(cation), anion = mean(anion),
+            PC1 = mean(PC1), PC2 = mean(PC2),
+            PC3 = mean(PC3), lat = mean(latitude), 
+            lon = mean(longitude), count = n()) %>%
+  ungroup() %>%
+  mutate(final = as.character(final)) %>%
+  mutate(samp_site = as.character(samp_site)) %>%
+  mutate(ecoregion = as.character(ecoregion)) 
+
+pca.gr.count <- pca.grouped %>%
+  select(samp_site, final, count)
+
+pca.gr.spread <- pca.gr.count %>%
+  spread(final,count) 
+
+pca.gr.spread <- remove_rownames(pca.gr.spread)
+pca.gr.spread <- column_to_rownames(pca.gr.spread, var = "samp_site") 
+pca.gr.spread[is.na(pca.gr.spread)] <- 0
+
+pca.gr.spread <- pca.gr.spread %>%
+  rowwise() %>% 
+  mutate(correct = max(Badl_E, Badl_W, CheyRiv, SandH, Tbl_hiHCO3, 
+                       Tbl_loF, Tbl_loHCO3)) 
+
+# The classification rate is 532/591 = 90%
+rm(final2, pca.gr.count, pca.gr.spread, map)
+```
+
+```{r prepare.final.map, eval = FALSE}
+samp.site <- (c("AMH1", "BEA1", "BEA2", "BEA3", "BEL1", "BEL2", "BLP1",
+               "BLP2", "BUZ1", "CHR1", "CHR2", "COR1", "CRA1", "EAN1",
+               "EAN2", "LOD1", "LON1", "LWR1", "LWR2", "LWR3", "LWR4",
+               "MER1", "MER3", "NFL1", "PAS1", "PAS2", "PAS3", "POR1",
+               "POR2", "POR3", "POT1", "RED1", "WCC1", "WCC2", "WCC3",
+               "WHR1", "WHR2", "WHR3", "WHR4", "WOK1", "WOK2", "WOK3",
+               "WOK4", "WOL1"))
+
+samp.site <- as.data.frame(samp.site)
+final2 <- c("Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "Badl", 
+  "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "CheyRiv", "CheyRiv",
+"Tbl_Steady", "Tbl_mix", "Tbl_mix", "Badl", "Tbl_mix", "Tbl_mix", 
+"SandH", "SandH", "SandH", "SandH", "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", 
+"Tbl_Steady", "Tbl_Steady", "Badl", "Tbl_mix", "Tbl_mix", "Badl_mix", "Tbl_mix",
+"Tbl_mix", "Tbl_Steady", "Tbl_Steady", "Badl_mix", "Tbl_mix",
+"Badl_mix", "Badl", "Badl","SandH", "Tbl_Steady", "Tbl_Steady", "Badl_mix", "SandH")
+final2 <- as.data.frame(final2)
+
+samp.site <- cbind(samp.site, final2)
+
+samp.site <- samp.site %>%
+  rename(samp_site = samp.site) %>%
+  mutate(samp_site = as.character(samp_site))
+
+map.pca.group <- left_join(locs, samp.site, by = "samp_site")
+```
+
+```{r map2, eval = FALSE}
+rm(locs)
+final.map <- ggmap(map1) + 
+               geom_point(aes(x = longitude, y = latitude, shape = final2,
+                 color = final2), data = map.pca.group, size = 4) +
+              theme_tufte() +
+              ggtitle("Water Quality Groups for the Pine Ridge Reservation",
+              subtitle = "Southwestern South Dakota") +
+              theme(legend.position = "bottom")
+  
+#ggsave("final_map.png")
+```
+
+```{r final.interp, eval = FALSE}
+rm(map.pca.group)
+
+pca.grouped <- left_join(pca.grouped, samp.site, by = "samp_site")
+
+pca.grouped.gath <- pca.grouped %>%
+  select(-count) %>%
+  select(-lat) %>%
+  select(-lon) %>%
+  select(-final) %>%
+  select(-ecoregion) %>%
+  select(-subws) %>%
+  select(-samp_site) %>%
+  select(-cation) %>%
+  select(-anion) %>%
+  rename(Calcium = ca) %>%
+  rename(Magnesium = mg) %>%
+  rename(Sodium = na) %>%
+  rename(CaMg_Ratio = ca_mg_rat) %>%
+  rename(Final_Group = final2) %>%
+  rename(Potassium = k) %>%
+  rename(Chloride = cl) %>%
+  rename(Fluoride = f) %>%
+  rename(Sulfate = so4) %>%
+  rename(Bicarbonate = hco3) %>%
+  select(-PC1) %>%
+  select(-PC2) %>%
+  select(-PC3)
+  
+pca.grouped.cation <- pca.grouped.gath %>%
+  select(Calcium:Sodium, CaMg_Ratio, Final_Group) %>%
+  gather(key = "meas", value = "val", Calcium:CaMg_Ratio)
+
+pca.grouped.cation <- pca.grouped.cation %>%
+  mutate(meas = as.factor(meas))
+
+pca.grouped.anion <- pca.grouped.gath %>%
+  select(Chloride:Sulfate, Bicarbonate, Final_Group) %>%
+  gather(key = "meas", value = "val", Chloride:Bicarbonate)
+
+# create cation and anion plots
+cation.plot <- ggplot(pca.grouped.cation, aes(Final_Group, val)) +
+  geom_point() +
+  facet_wrap(~meas) +
+  theme_classic() +
+  ggtitle("Differences in Cations Among Water Quality Groups")
+
+anion.plot <- ggplot(pca.grouped.anion, aes(Final_Group, val)) +
+  geom_point() +
+  facet_wrap(~meas) +
+  theme_classic() +
+  ggtitle("Differences in Anions Among Water Quality Groups")
+rm(pca.grouped.gath, pca.grouped.anion, pca.grouped.cation, samp.site)
+```
+
+```{r next.steps, eval=FALSE}
+install.packages("ISLR")
+library(ISLR)
+attach(Smarket)
+summary(Smarket)
+# Split data into testing and training
+train<-Smarket[Year<2005,]
+test<-Smarket[Year==2005,]
+
+#The lda() function is part of the MASS library.
+
+library(MASS)
+
+qda.fit <- lda(Year~Lag1 + Lag2 + Lag3, data=train)
+qda.fit
+
+qda.set <- pca.interp %>%
+  arrange(.fittedPC10)
+
+qda.train <- qda.set %>%
+  filter(.fittedPC10 < -0.04505570)
+qda.test <- qda.set %>%
+  filter(.fittedPC10 >= -0.04505570)
+
+crops.train.lda <-lda(crops[ftrain,-1], crops[ftrain,1])
+
+qda.test <- qda(final~ .fittedPC1 + .fittedPC2 +.fittedPC3, data =pca.interp, CV = TRUE)
+qda.test
+lda.pred <- predict(qda.test, )
+
+## Call:
+## lda(Direction ~ Lag1 + Lag2 , data = train)
+## 
+## Prior probabilities of groups:
+##  Down    Up 
+## 0.492 0.508 
+## 
+## Group means:
+##          Lag1     Lag2
+## Down  0.04279  0.03389
+## Up   -0.03955 -0.03133
+## 
+## Coefficients of linear discriminants:
+##          LD1
+## Lag1 -0.6420
+## Lag2 -0.5135
+
+From here we can see the model predicts 49.2% of days in the training data correspond to days which the market went down. We also see the group means; these are the average of each predictor within each class. These suggest that there is a tendency for the previous 2 days’ returns to be negative on days when the market increases, and a tendency for the previous 2 days’ returns to be positive on days when the market declines. The cooeficients of the linear discrinimants output provides the linear combination of Lag1 and `Lag2 that are used to form the LDA decision rule. We could use these, along with the predictor values to draw the linear discriminant.
+
+The predict() function in this case returns a list with three elements. class, contains the LDA’s predictions about the movement of the market. posterior, is a matrix whose kth column contains the posterior probability that the corresponding observation belongs to the kth class, and x contains the linear discriminants.
+
+lda.pred <- predict(lda.fit, test)
+names(lda.pred)
+
+## [1] "class"     "posterior" "x"
+
+# The results are the same as logistic regression
+table(lda.pred$class, test$Direction)
+```
+
+## Overview
+States and Tribal Nations are mandated to protect and restore the Nation's waters under the Clean Water Act.  Increasing nutrient concentrations are the greatest source of impairment to the Nation's waters. Nitrogen and phosphorus are the nutrients limiting the growth of algal biomass and the likelihood of low dissolved oxygen event occurrence.  Increased nutrient concentration over time may explain the substantial change in Pine Ridge reservation (PRR) stream biological integrity in  that was first observed in the mid-2000s.  Challenges in evaluating changes in nutrient concentration in PRR streams are regional physiographic heterogeneity, possible transcription errors, incomplete sampling data, and a mixed population of samples taken during events and during base flows.  A first step in testing a hypothesis that nutrient concentration is increasing over time is to estimate missing nitrogen and phosphorus data based on an informed prior.  We assume that geochemically similar stations, in other words stations with similar major anion and cation concentrations and ratios, will have similar land uses that can be used to as an informed prior to estimate nutrient concentrations.  The following report outlines our method for estimating missing data, identifying functional groups, and testing for significant differences among the groups identified in the analysis using classical statistical methods.  We discuss our findings and the next steps in the latter sections of the report.  
+
+## Background
+The Oglala Sioux Tribe (OST) Water Pollution Control Program is responsible for assessing non-point source impacts to streams and developing watershed protection plans to characterize impacts to water quality and to identify and implement best management practices to restore water quality.  The Tribe has established approximately forty surface-water quality sampling stations on Pine Ridge Reservation lands.  The sampling stations have been grouped by location into subwatersheds.  Water quality field data and water samples are collected at monthly intervals, typically from May to October, by OST Environmental Protection Program staff for one to two subwatersheds per year.  The water samples are taken to an Environmental Protection Agency (EPA) certified laboratory for water quality testing and the results are returned to the Tribe.  The data represent observational rather than experimental data.  Some degree of randomization exists in terms of water quality concentrations because of: 1) individual water quality parameter concentrations are interdependent and concentrations may change as a result of calcite or fluorapatite precipitation, and 2) increased suspended sediment loads following precipitation events.
+
+```{r sample.site.map}
+station.map
+```
+
+The Oglala Lakota College (OLC) Science Technology Engineering and Mathematics (STEM) Department staff began partnering with the Tribe in 2011 to: 1) analyze and compare water quality data collected by the Oglala Sioux Tribe (OST) Water Quality Program historically from 1993-2011, and for 2012-2013, 2) integrate macroinvertebrate sampling data collected historically from 1993-2011 are for 2012-2013, and to 3) to refine recommendations for future monitoring and implementation of best management practices (BMPs). 
+
+The regional climate is typical of the Northern Great Plains with a median temperature of 50F in January and 73 degrees F in July (SDSU climate website, accessed March 6, 2013).  The average annual precipitation between the years 1971 and 2000 at the Manderson 3 NE station is 19.3 inches with January as the driest month (0.39 inches) and June as the wettest month (3.18 inches).  The Manderson station is slightly drier than the rest of the south-central region of South Dakota, which has an average precipitation of 21.6 +/- 4.5 inches (standard deviation) (SDSU climate website, accessed March 6, 2013).  The Keya Paha Tablelands receives a mean annual precipitation of 16-20 inches while the Pine Ridge Escarpment receives 16-17 inches (Bryce et al, 1998).  The Great Plains has an historical record of major drought (Meyer et al. 1999).  The 2012 drought resulted in zero flow conditions in the White River and a majority of White River tributary streams (Tinant personal observation).  
+
+The amount and frequency of hydrological exchange between the floodplain, groundwater and the stream depends on geology and alluvial composition. Upper White River tributaries begin in central Nebraska as springs. Middle White River tributaries begin in Arikaree Group sandstones and siltstones, and then flow across White River Group volcaniclastic claystones, before draining into the White River (Bryce et al. 1998, Heaken 1999). Sandier units of the Arikaree group form water table aquifers that sustain base flow in the upper reaches of White River tributaries (Heaken 1999).  The hydrologic regime shifts from a mixed flow regime to an event-dominated regime as streams cross the Arikaree Group – White River Group contact as infiltration rates decrease and the volume of overland flow increases (Foreman 2006).   Infiltration, percolation and ground water flow dominates Sandhills ecoregion hydrology in the Little White River watershed.  
+
+## Methods
+We prepared and validated the raw data as a first step in the analysis.  The primary author compiled raw water quality data collected by OST staff from the period of 1993 to 2013 for approximately forty long-term surface water sampling locations across the reservations in an Excel spreadsheet.  The spreadsheet was converted in Excel to a 'csv' format and imported into an R statistical software package running under R Studio.  The format of the raw data was standardized, empty columns removed, grouping variables assigned, and data with values below the laboratory instrument detection limit assigned a value of half the detection limit using the 'janitor' and 'dplyr' packages. Date and time variables were encoded as time-series variables using the 'lubridate' package.  Trace metals concentrations, which were available for approximately half of the observations, and biological variables were removed from the analysis.  Field observations of pH and conductivity were also removed as validation of these parameters indicated instrument calibration was a major factor in the variance of these data.
+
+We prepared the cleaned data for multivariate analysis by estimating missing non-nutrient major cation and anion concentrations.  We filled in missing data using group means from level four ecoregions, sensu Obernick et al, using the dplyr::group_by function. Milliequvilants per liter ionic concentrations were derived by multiplying the absolute value of charge by mass concentration and dividing by the atomic weight. Bicarbonate concentrations for each of the observations were calculated by subtracting the sum of cations from the sum of cations.  
+
+We identified water quality groups following a principal component analysis (PCA) of prepared data that was transformed prior to analysis.  We plotted plots of untransformed and transformed non-nutrient ion data using the 'ggpairs' package as a first step to validating the assumption of multivariate normality.  We applied transformations using the 'dplyr' package after estimating Box-Cox transformation parameters using the 'AID' package.  We calculated an evaluated a PCA using the 'prcomp' function to calculate principal components, and the 'cor' and 'eigen' functions to calculate a correlation matrix and calculate eigenvectors.  We plotted the resulting eigenvectors as a scree-plot using the 'ggplot2' package.  We tidied the significant PCA axes into a data frame using the broom::tidy, broom::augment functions, and tidyr::spread functions.  We joined the results with factor variables using the dplyr:: left_join function.  We plotted the PCA loadings using the ggfortify::autoplot function.  We identified initial water quality groups from natural breaks along the PCA-1, PCA-2, and PCA-3 axes.  We identified final water quality groups after plotting the initial water quality groups on a map using the 'ggmap' package.
+
+## Results
+We found that the PCA analysis of stream water samples explained about 77% of the variance in major non-nutrient ions along three significant axes.  The first PCA-axis explained 54% of variance and is interpreted as describing a gradient of higher conductivity and lower carbonate waters to low conductivity high carbonate waters.  The second PCA-axis explained 13% of variance and is interpreted as describing a gradient of low to high calcium waters.  The third PCA axis explained 10% of variance and is interpreted as describing a gradient of low to high fluorite waters.  However, we feel somewhat cautious of our analysis as the assumption of normality was not met, as shown in pairs plots located in the appendices of this report. The appendices also include information on the PCA loadings.
+
+```{r plot.results}
+rm(pca.pcs)
+
+ggplot(pca.interp, aes(PC1, PC2)) +
+  geom_point(aes(shape = group, color = group)) +
+  theme_tufte() +
+  scale_y_reverse() +
+  xlab("Inc. HCO3 ions (54% of var.) ->") +
+  ylab("Inc. Ca ions (13% of var.) ->") +
+  ggtitle("Interpretation of PCA Results for PRR Stream Water Chemistry",
+          subtitle = "P") +
+  theme(legend.position = "none")
+
+p2 <- ggplot(pca.interp, aes(.fittedPC1, .fittedPC3)) +
+  geom_point(aes(shape = group, color = group)) +
+  theme_tufte() +
+  xlab("Inc. HCO3 ions (54% of var.) ->") + 
+  ylab("Inc F ions (10%) ->") +
+  ggtitle("") +
+  theme(legend.position = "none")
+
+p3 <- ggplot(pca.interp, aes(.fittedPC3, .fittedPC2)) +
+  geom_point(aes(shape = group, color = group)) +
+  theme_tufte() +
+  scale_y_reverse() +
+  ylab("Inc. Ca ions (13%) ->") +
+  xlab("Inc F ions (10% of var.) ->") +
+  theme(legend.position = "bottom")
+  
+p4 <- ggplot(pca.interp.sub, aes(.fittedPC1, .fittedPC3)) +
+  geom_point(aes(shape = final, color = final)) +
+  theme_tufte() +
+  scale_y_reverse() +
+  ylab("Inc. HCO3 ions (54%) ->") +
+  xlab("Inc F ions (10% of var.) ->") +
+  theme(legend.position = "bottom") 
+
+grid.arrange(p1,p2,p3,p4, nrow = 2)
+#ggsave("pca_results.png")
+```
+
+## Discussion
+We identify two water quality groups in addition to the water quality groups observed prior to PCA analysis.  We interpret the Badlands ecoregion as consisting of two water quality groups: a group with relatively steady cation concentrations and a mixed group with varying calcium, sodium, and bicarbonate.  The Cheyenne ecoregion consists of high ionic concentration waters with a low calcium magnesium ratio and high sulfates.  The Sandhills ecoregion consists of  low total ionic concentration and sodium waters with varying calcium concentrations.  We interpret the Tablelands ecoregion as consisting of two water quality groups: a group with relatively steady ionic concentrations and a mixed group made up of waters with varying calcium, sodium, bicarbonate, sulfate, and fluoride concentrations.  We interpret the differences in the Badlands and Tablelands steady and mixed groups to be the result of calcite and/or fluorapatite precipitation.
+
+```{r cation.plot}
+rm(pca.interp.sub)
+cation.plot
+```
+
+```{r anion.plot}
+anion.plot
+```
+
+```{r final.map.plot}
+final.map
+```
+
+## Conclusions and Next Steps
+We identified differences among major non-nutrient cations and anions in Pine Ridge Reservation water samples and classified the samples into water quality groups.  Time limitations prevented MANOVA or MRPP analysis of the groups to determine if the differences among group are significant.  The next step in the analysis are: 1) to use the identified groups as priors for a quadratic discriminant analysis to identify misclassified observations following the exploratory principal component analysis, and 2) to estimate nitrate and phosphorus concentrations from the groups.
+
+##Appendices
+```{r appendix.1.pairs.plot.1}
+pairs.plot1
+```
+
+```{r appendix.2.pairs.plot.2}
+pairs.plot2
+```
+
+```{r appendix.3.pca.output}
+grid.arrange(scree.plot, tbl,
+             ncol=2,
+             as.table=TRUE,
+heights=c(4,2))
+```
+
+
