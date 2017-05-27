@@ -869,9 +869,9 @@ ord.plot <- autoplot(pca.input, data = pca.aug, shape = "ecoregion",
             scale_y_reverse() +
             xlab("<- Increasing conductivity (52% of var.)") +
             ylab("Low to high hardness (20% of var.) ->") +
-            theme_tufte() +
-            theme(legend.position = "bottom")
-
+            theme_tufte(base_size = 16) +
+            theme(legend.position = "bottom") 
+          
 #ggsave("ordinate_plot.png")
 ord.plot
 #scree.plot
@@ -948,12 +948,20 @@ locs <- data.clean %>%
 # join the lat lons to the pca.aug
 pca.aug <- left_join(pca.aug, locs, by = "samp_site")
 
+
+
+
+```
+
+```{r}
 # get a map from Google Maps
 map1 <- suppressMessages(
   get_map(location = c(-102.1, 43.3206149), zoom = 9,
   maptype="terrain")) 
 
-# ggsave("map.prior.png")
+ggsave(map1)
+
+
 
 # make a map of priors
 map.prior <- ggmap(map1) + 
@@ -965,6 +973,8 @@ map.prior <- ggmap(map1) +
                  subtitle = "Southwestern South Dakota") +
                  theme(legend.position = "right")
 
+# ggsave("map.prior.png")
+
 # Take out Chey River to be able to visulize
 pca.no.chr <- pca.aug %>%
   filter(subws  != "ChR")
@@ -974,12 +984,12 @@ map.post1 <- ggmap(map1) +
                            shape = group, color = group), 
                            data = pca.no.chr, size = 4) +
              theme_tufte() +
-             ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
-             subtitle = "Southwestern South Dakota") +
-             theme(legend.position = "right")
+             ggtitle("PCA of stream sampling stations",
+             subtitle = "Pine Ridge Reservation, Southwestern South Dakota") +
+             theme(legend.position = "bottom")
 
 map.post1
-
+ggsave("pca_map.png")
 ```
 
 ```{r create_supervised_groups}
@@ -1025,6 +1035,7 @@ lda.xval <- lda(group ~ ca + mg + na + k + cl + f + so4,
 class <- as.data.frame(lda.xval$class)
 
 pca.aug <- cbind(pca.aug, class)
+rm(class)
 
 pca.aug <- pca.aug %>%
   rename (group2 = `lda.xval$class`) 
@@ -1053,9 +1064,6 @@ summarise(count = n(), subws = first(subws), group = first(group),
 misclass.subws <- group_by(misclass.obs, subws) %>%
 summarise(sum = sum(count), group = first(group), group2 = first(group2),
           ecoregion = first(ecoregion))        
-
-
-
 ```
 
 ```{r lda.supervised.means}
@@ -1095,6 +1103,8 @@ ggplot(lda.means.gath, aes(chem, conc)) +
              subtitle = "group means") +
   ylab("Relative Concentrations") +
             xlab("") 
+
+# ggsave("chem_var.png")
 ```
 
 
@@ -1132,7 +1142,13 @@ rm(lda.hat, lda.hat.df, locs)
 
 lda.pl1 <- ggplot(pca.aug, aes(LD1, LD2)) + 
              geom_point(aes(color = group)) +
-             theme_tufte()
+             theme_tufte() +
+          ggtitle("Group Separation Along LDA Axis 1") +
+          xlab("Inc. NaCl & KCl relative to CaCO3 (70% of var.) ->") +
+          ylab("<- Inc. Ca & Mg conc. (17% of var.)") +
+          theme(legend.position = "bottom")
+
+ggsave("lda_chart.png")
 
 lda.pl2 <- ggplot(pca.aug, aes(LD1, LD3)) + 
              geom_point(aes(color = group)) +
@@ -1195,7 +1211,7 @@ dp4 <- ggplot(pca.aug, aes(PC1, LD1)) +
   theme_tufte() +
   ggtitle("Contrasts in LDA vs PCA Axes for Wines") 
 
-grid.arrange(dp1, q1, ncol = 2)
+
 # LD1 segragates k with sandhills being low
 ```
 
@@ -1293,7 +1309,7 @@ wq <- wq %>%
         if_else(samp_site == "PAS3", "Bad_S",
         if_else(samp_site == "POR1", "Tab_H", 
         if_else(samp_site == "POR2", "Tab_H",        
-        if_else(samp_site == "POR3", "Bad_S",
+        if_else(samp_site == "POR3", "Bad_H",
         if_else(samp_site == "POT1", "Tab_S",
         if_else(samp_site == "RED1", "Tab_S",
         if_else(samp_site == "WCC1", "Tab_H",
@@ -1320,13 +1336,13 @@ map.post2 <- ggmap(map1) +
                            shape = group_fin, color = group_fin), 
                            data = wq.no.chr, size = 4) +
              theme_tufte() +
-             ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
-             subtitle = "Southwestern South Dakota") +
-             theme(legend.position = "right")
+             ggtitle("Final selection after discriminant analysis",
+             subtitle = "Pine Ridge Reservation ,Southwestern South Dakota") +
+             theme(legend.position = "bottom")
+
+ggsave("map_da.png")
 map.post2
 ```
-
-
 
 ```{r multimetrics}
 
@@ -1363,7 +1379,6 @@ multi.00s <- multimetrics %>%
 multimetrics <- multimetrics %>%
 mutate(year = as.factor(year)) 
 ```
-
 
 ```{r multi.plots}
 m1 <- ggplot(multimetrics, aes(year,total_score_old)) +
@@ -1487,510 +1502,64 @@ ggplot(multi_wq, aes(Year, np_rat)) +
   geom_smooth(method = "lm") +
   scale_y_log10() +
   facet_grid(.~ecoregion) +
-  theme_tufte()
+  theme_tufte(base_size = 16)
 
-  
+  ggsave("np_rat.png")
 
 
 test <- multi_wq %>%
   filter(ecoregion != "ChRiv")  
 
 ggplot(test, aes(mg_meq, total_score_old)) +
-  geom_point(aes(color = subws)) +
-  geom_smooth() 
+  geom_jitter(aes(color = group_fin)) +
+  facet_grid(.~ ecoregion) +
+  geom_smooth() +
+  scale_x_continuous(limits = c(0, 1)) + 
+  theme_tufte(base_size = 16) +
+  theme(legend.position = "bottom") +
+  labs(title = "Mg effects on stream health",
+       y = "Biotic index", x = "")
+
+# ggsave("mg_effects.png")
 
 
+ggplot(test, aes(nate_meq, total_score_old)) +
+  geom_jitter(aes(color = group_fin)) +
+  facet_grid(.~ ecoregion) +
+  geom_smooth() +
+  scale_x_continuous(limits = c(0, .05)) + 
+  theme_tufte(base_size = 16) +
+  theme(legend.position = "bottom") +
+  labs(title = "Nitrate effects on stream health",
+       y = "Biotic index", x = "")
+ggsave("nate_effects.png")
+
+ggplot(multi_wq, aes(year, total_score_old)) +
+  geom_boxplot() +
+  theme_tufte(base_size = 16) +
+  theme(legend.position = "bottom") +
+  labs(title = "Year effects on stream health",
+       y = "Biotic index", x = "")
+
+ggsave("year_effects.png")
+
+
+ggplot(multi_wq, aes(subws, total_score_old)) +
+  geom_boxplot() +
+  theme_tufte(base_size = 16) +
+  theme(legend.position = "bottom") +
+  labs(title = "Watershed effects on stream health",
+       y = "Biotic index", x = "")
+
+ggsave("watershed_effects.png")
 ```
 
+```{r lubridate.temps}
+data.super <- data.super %>%
+  mutate(yr_day = yday(date))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r create.group2, eval = FALSE}
-# split up the regions b
-eda.bad1 <- pca.aug %>%
-  filter(ecoregion == "BadLand")
-
-eda.chr1 <- pca.aug %>%
-  filter(ecoregion == "CheyRiv")
-
-eda.snd1 <- pca.aug %>%
-  filter(ecoregion == "SandHil")
-
-eda.tab1 <- pca.aug %>%
-  filter(ecoregion == "TabLand")
-
-# mutate the regions
-eda.bad1 <- eda.bad1 %>%
-    mutate(group = if_else(latitude < -102.3, "Badl_hard",  
-                        "Badl_soft"))
-
-eda.chr1 <- eda.chr1 %>%
-  mutate(group = "ChRiv")
-
-eda.snd1 <- eda.snd1 %>%
-  mutate(group = "SandHil")
-
-eda.tab1 <- eda.tab1 %>%
-    mutate(group = if_else(latitude < -102.3, "Badl_mix",  
-                        "Badl_soft"))
-
-# rejoin the regions
-pca.aug <- rbind(eda.bad1, eda.chr1, eda.tab1, eda.snd1)
-
-# remove the temporary vars
-rm(eda.bad1, eda.chr1, eda.snd1, eda.tab1, eda.bear)
-   
-
-#p1 <- ggplot(eda.bad1, aes(PC1, PC2)) +
-#      geom_point() +
-#      ylab("High to Low Ions (51% of var.)") +
-#      theme_tufte() 
-
-#p2 <- ggplot(eda.bad1, aes(subws, PC2)) +
-#      geom_boxplot() +
-#      theme_tufte() +
-#      ylab("High to Low Hardness (18% of var.) ->")
-
-#p3 <- ggplot(eda.bad1, aes(subws, PC3)) +
-#      geom_boxplot() +
-#      theme_tufte() +
-#      ylab("High to Low F (13% of var.) ->")
-
-#grid.arrange(p1, p2, p3, ncol = 3)
-
-# eda.bear <- eda.tab1 %>%
-#  filter(subws == "WhB")
-
-#ggplot(eda.snd1, aes(PC2, PC3)) +
-#      geom_point(aes(color = subws)) +
-#      theme_tufte()  #
-#     xlab("High to Low Hardness (18% of var.) ->") +
-#      ylab("High to Low F (13% of var.) ->")
-
-#eda.tab2 <- pca.gath %>%
-#  filter(ecoregion == "TabLand")
-
-#eda.bad2 <- pca.gath %>%
-#  filter(ecoregion == "BadLand")
-
-#eda.chr2 <- pca.gath %>%
-#  filter(ecoregion == "CheyRiv")
-
-#eda.snd2 <- pca.gath %>%
- # filter(ecoregion == "SandHil")
-
-#ggplot(eda.snd2, aes(subws, val)) +
-#  geom_point() +
-#  facet_wrap(~meas) +
-#  theme_classic() 
-
-# mutate(final = str_c(group, ecoregion, sep = "_")) %>%
-#  mutate(final = 
-#    if_else(final == "Badl_E_BadLand", "Badl_E",
-#      if_else(final == "Badl_W_BadLand", "Badl_W",
-#        if_else(final == "CheyRiv_CheyRiv", "CheyRiv", 
-#            if_else(final == "Other_TabLand", "Tbl_hiHCO3", 
-#              if_else(final == "Tabl_LoHCO3_TabLand", "Tbl_loHCO3", 
-#                if_else(final == "Tabl_LoF_TabLand", "Tbl_loF", 
-#                   "SandH"))))))) %>%
-#  mutate(final = as.factor(final)) 
-
-# pca.interp.sub <- pca.interp %>%
-#  filter(ecoregion != "BadLand") %>%
-#  filter(ecoregion != "CheyRiv")
-
-# group by samp_site and summarize
-pca.grouped <- pca.aug %>%
-  group_by(samp_site, group, ecoregion, subws) %>%
-  summarize(ca = mean(ca), mg = mean(mg), na = mean(na), 
-            k = mean(k), cl = mean(cl), f = mean(f), 
-            so4 = mean(so4), hco3 = mean(hco3),
-            PC1 = mean(PC1), PC2 = mean(PC2),
-            PC3 = mean(PC3), lat = mean(latitude), 
-            lon = mean(longitude), count = n()) %>%
-  ungroup() %>%
-  mutate(group = as.character(group)) %>%
-  mutate(samp_site = as.character(samp_site)) %>%
-  mutate(ecoregion = as.character(ecoregion))  %>%
-  select(samp_site, group, count) %>%
-  spread(group,count) 
-
-pca.groups<- remove_rownames(pca.groups)
-pca.groups <- column_to_rownames(pca.groups, var = "samp_site") 
-pca.groups[is.na(pca.groups)] <- 0
-pca.groups <- rownames_to_column(pca.groups, var = "samp_site") 
-
-pca.groups <-pca.groups %>%
-  rowwise() %>% 
-  mutate(correct = max(Badl_hard, Badl_soft, ChRiv, SandHil, Tabl_hard, 
-                       Tabl_LoF, Tabl_soft)) 
-
-# The classification rate is 532/591 = 90%
-rm(final2, pca.gr.count, pca.gr.spread, map)
+ggplot(data.super, aes(yr_day,temp_c)) +
+  geom_smooth() +
+  geom_point(aes(color = group))
 ```
-
-```{r make.station.map, eval =FALSE}
-# found some errors on the table
-map <- data.clean %>%
-  mutate(latitude = if_else(samp_site == "CHR1", 43.66, latitude)) %>%
-  mutate(latitude = if_else(samp_site == "CHR2", 43.67, latitude)) %>%
-  mutate(latitude = if_else(samp_site == "BEL2", 43.66493, latitude)) %>%
-  mutate(latitude = if_else(samp_site == "LWR4", 43.17, latitude)) %>%
-  mutate(latitude = if_else(samp_site == "COR1", 43.4, latitude)) %>%
-  mutate(longitude = -1* longitude)
-# Need to change BUZ1 to subws == "WhP"
-
-# get a map from Google Maps
-map1 <- suppressMessages(
-  get_map(location = c(-102.1, 43.3206149), zoom = 9,
-  maptype="terrain")) 
-
-station.map <- ggmap(map1) + 
-                 geom_point(aes(x = longitude, y = latitude, 
-                                shape = ecoregion, color = subws), 
-                            data = map, size = 4) +
-                 theme_tufte() +
-                 ggtitle("Stream Sampling Stations for the Pine Ridge Reservation",
-                 subtitle = "Southwestern South Dakota") +
-                 theme(legend.position = "right")
-# ggsave("map.prior.png")
-rm(data.clean)
-```
-
-```{r map.results.calc, eval = FALSE}
-locs <- map %>%
-  select(latitude, longitude, samp_site) %>%
-  distinct(samp_site, latitude, longitude) %>%
-  filter(samp_site != "BEL_USGS") %>%
-  filter(samp_site != "LCC1") %>%
-  filter(samp_site != "MER2") %>%
-  filter(samp_site != "MER4") %>%
-  filter(samp_site != "BEL_USGS") %>%
-  filter(samp_site != "POR_Lagoon") %>%
-  filter(samp_site != "WCC_Lagoon") %>%
-  filter(samp_site != "WHR5") %>%
-  filter(samp_site != "WOK_Lagoon") %>%
-  mutate(samp_site = as.factor(samp_site))
-
-locs <- locs %>%
-  mutate(longitude = if_else(samp_site == "BEL2", -101.8251, longitude)) %>%
-  unique() %>%
-  mutate(samp_site = as.character(samp_site))
-
-# join the lat lons to the pca interp
-pca.interp <- left_join(pca.interp, locs, by = "samp_site")
-pca.interp <- pca.interp %>%
-  mutate(samp_site = as.factor(samp_site)) %>%
-  mutate(group = as.factor(group))
-
-# group by samp_site and summarize
-pca.grouped <- pca.interp %>%
-  group_by(samp_site, final, ecoregion, subws) %>%
-  summarize(ca = mean(ca_tr), mg = mean(mg_tr), na = mean(na_tr), 
-            k = mean(k_tr), cl = mean(cl_tr), f = mean(f_tr), 
-            so4 = mean(so4_tr), ca_mg_rat = mean(ca_mg_rat),
-            hco3 = mean(hco3), cation = mean(cation), anion = mean(anion),
-            PC1 = mean(PC1), PC2 = mean(PC2),
-            PC3 = mean(PC3), lat = mean(latitude), 
-            lon = mean(longitude), count = n()) %>%
-  ungroup() %>%
-  mutate(final = as.character(final)) %>%
-  mutate(samp_site = as.character(samp_site)) %>%
-  mutate(ecoregion = as.character(ecoregion)) 
-
-pca.gr.count <- pca.grouped %>%
-  select(samp_site, final, count)
-
-pca.gr.spread <- pca.gr.count %>%
-  spread(final,count) 
-
-pca.gr.spread <- remove_rownames(pca.gr.spread)
-pca.gr.spread <- column_to_rownames(pca.gr.spread, var = "samp_site") 
-pca.gr.spread[is.na(pca.gr.spread)] <- 0
-
-pca.gr.spread <- pca.gr.spread %>%
-  rowwise() %>% 
-  mutate(correct = max(Badl_E, Badl_W, CheyRiv, SandH, Tbl_hiHCO3, 
-                       Tbl_loF, Tbl_loHCO3)) 
-
-# The classification rate is 532/591 = 90%
-rm(final2, pca.gr.count, pca.gr.spread, map)
-```
-
-```{r prepare.final.map, eval = FALSE}
-samp.site <- (c("AMH1", "BEA1", "BEA2", "BEA3", "BEL1", "BEL2", "BLP1",
-               "BLP2", "BUZ1", "CHR1", "CHR2", "COR1", "CRA1", "EAN1",
-               "EAN2", "LOD1", "LON1", "LWR1", "LWR2", "LWR3", "LWR4",
-               "MER1", "MER3", "NFL1", "PAS1", "PAS2", "PAS3", "POR1",
-               "POR2", "POR3", "POT1", "RED1", "WCC1", "WCC2", "WCC3",
-               "WHR1", "WHR2", "WHR3", "WHR4", "WOK1", "WOK2", "WOK3",
-               "WOK4", "WOL1"))
-
-samp.site <- as.data.frame(samp.site)
-final2 <- c("Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "Badl", 
-  "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", "CheyRiv", "CheyRiv",
-"Tbl_Steady", "Tbl_mix", "Tbl_mix", "Badl", "Tbl_mix", "Tbl_mix", 
-"SandH", "SandH", "SandH", "SandH", "Tbl_Steady", "Tbl_Steady", "Tbl_Steady", 
-"Tbl_Steady", "Tbl_Steady", "Badl", "Tbl_mix", "Tbl_mix", "Badl_mix", "Tbl_mix",
-"Tbl_mix", "Tbl_Steady", "Tbl_Steady", "Badl_mix", "Tbl_mix",
-"Badl_mix", "Badl", "Badl","SandH", "Tbl_Steady", "Tbl_Steady", "Badl_mix", "SandH")
-final2 <- as.data.frame(final2)
-
-samp.site <- cbind(samp.site, final2)
-
-samp.site <- samp.site %>%
-  rename(samp_site = samp.site) %>%
-  mutate(samp_site = as.character(samp_site))
-
-map.pca.group <- left_join(locs, samp.site, by = "samp_site")
-```
-
-```{r map2, eval = FALSE}
-rm(locs)
-final.map <- ggmap(map1) + 
-               geom_point(aes(x = longitude, y = latitude, shape = final2,
-                 color = final2), data = map.pca.group, size = 4) +
-              theme_tufte() +
-              ggtitle("Water Quality Groups for the Pine Ridge Reservation",
-              subtitle = "Southwestern South Dakota") +
-              theme(legend.position = "bottom")
-  
-#ggsave("final_map.png")
-```
-
-```{r final.interp, eval = FALSE}
-rm(map.pca.group)
-
-pca.grouped <- left_join(pca.grouped, samp.site, by = "samp_site")
-
-pca.grouped.gath <- pca.grouped %>%
-  select(-count) %>%
-  select(-lat) %>%
-  select(-lon) %>%
-  select(-final) %>%
-  select(-ecoregion) %>%
-  select(-subws) %>%
-  select(-samp_site) %>%
-  select(-cation) %>%
-  select(-anion) %>%
-  rename(Calcium = ca) %>%
-  rename(Magnesium = mg) %>%
-  rename(Sodium = na) %>%
-  rename(CaMg_Ratio = ca_mg_rat) %>%
-  rename(Final_Group = final2) %>%
-  rename(Potassium = k) %>%
-  rename(Chloride = cl) %>%
-  rename(Fluoride = f) %>%
-  rename(Sulfate = so4) %>%
-  rename(Bicarbonate = hco3) %>%
-  select(-PC1) %>%
-  select(-PC2) %>%
-  select(-PC3)
-  
-pca.grouped.cation <- pca.grouped.gath %>%
-  select(Calcium:Sodium, CaMg_Ratio, Final_Group) %>%
-  gather(key = "meas", value = "val", Calcium:CaMg_Ratio)
-
-pca.grouped.cation <- pca.grouped.cation %>%
-  mutate(meas = as.factor(meas))
-
-pca.grouped.anion <- pca.grouped.gath %>%
-  select(Chloride:Sulfate, Bicarbonate, Final_Group) %>%
-  gather(key = "meas", value = "val", Chloride:Bicarbonate)
-
-# create cation and anion plots
-cation.plot <- ggplot(pca.grouped.cation, aes(Final_Group, val)) +
-  geom_point() +
-  facet_wrap(~meas) +
-  theme_classic() +
-  ggtitle("Differences in Cations Among Water Quality Groups")
-
-anion.plot <- ggplot(pca.grouped.anion, aes(Final_Group, val)) +
-  geom_point() +
-  facet_wrap(~meas) +
-  theme_classic() +
-  ggtitle("Differences in Anions Among Water Quality Groups")
-rm(pca.grouped.gath, pca.grouped.anion, pca.grouped.cation, samp.site)
-```
-
-```{r next.steps, eval=FALSE}
-install.packages("ISLR")
-library(ISLR)
-attach(Smarket)
-summary(Smarket)
-# Split data into testing and training
-train<-Smarket[Year<2005,]
-test<-Smarket[Year==2005,]
-
-#The lda() function is part of the MASS library.
-
-library(MASS)
-
-qda.fit <- lda(Year~Lag1 + Lag2 + Lag3, data=train)
-qda.fit
-
-qda.set <- pca.interp %>%
-  arrange(.fittedPC10)
-
-qda.train <- qda.set %>%
-  filter(.fittedPC10 < -0.04505570)
-qda.test <- qda.set %>%
-  filter(.fittedPC10 >= -0.04505570)
-
-crops.train.lda <-lda(crops[ftrain,-1], crops[ftrain,1])
-
-qda.test <- qda(final~ .fittedPC1 + .fittedPC2 +.fittedPC3, data =pca.interp, CV = TRUE)
-qda.test
-lda.pred <- predict(qda.test, )
-
-## Call:
-## lda(Direction ~ Lag1 + Lag2 , data = train)
-## 
-## Prior probabilities of groups:
-##  Down    Up 
-## 0.492 0.508 
-## 
-## Group means:
-##          Lag1     Lag2
-## Down  0.04279  0.03389
-## Up   -0.03955 -0.03133
-## 
-## Coefficients of linear discriminants:
-##          LD1
-## Lag1 -0.6420
-## Lag2 -0.5135
-
-From here we can see the model predicts 49.2% of days in the training data correspond to days which the market went down. We also see the group means; these are the average of each predictor within each class. These suggest that there is a tendency for the previous 2 days’ returns to be negative on days when the market increases, and a tendency for the previous 2 days’ returns to be positive on days when the market declines. The cooeficients of the linear discrinimants output provides the linear combination of Lag1 and `Lag2 that are used to form the LDA decision rule. We could use these, along with the predictor values to draw the linear discriminant.
-
-The predict() function in this case returns a list with three elements. class, contains the LDA’s predictions about the movement of the market. posterior, is a matrix whose kth column contains the posterior probability that the corresponding observation belongs to the kth class, and x contains the linear discriminants.
-
-lda.pred <- predict(lda.fit, test)
-names(lda.pred)
-
-## [1] "class"     "posterior" "x"
-
-# The results are the same as logistic regression
-table(lda.pred$class, test$Direction)
-```
-
-## Overview
-States and Tribal Nations are mandated to protect and restore the Nation's waters under the Clean Water Act.  Increasing nutrient concentrations are the greatest source of impairment to the Nation's waters. Nitrogen and phosphorus are the nutrients limiting the growth of algal biomass and the likelihood of low dissolved oxygen event occurrence.  Increased nutrient concentration over time may explain the substantial change in Pine Ridge reservation (PRR) stream biological integrity in  that was first observed in the mid-2000s.  Challenges in evaluating changes in nutrient concentration in PRR streams are regional physiographic heterogeneity, possible transcription errors, incomplete sampling data, and a mixed population of samples taken during events and during base flows.  A first step in testing a hypothesis that nutrient concentration is increasing over time is to estimate missing nitrogen and phosphorus data based on an informed prior.  We assume that geochemically similar stations, in other words stations with similar major anion and cation concentrations and ratios, will have similar land uses that can be used to as an informed prior to estimate nutrient concentrations.  The following report outlines our method for estimating missing data, identifying functional groups, and testing for significant differences among the groups identified in the analysis using classical statistical methods.  We discuss our findings and the next steps in the latter sections of the report.  
-
-## Background
-The Oglala Sioux Tribe (OST) Water Pollution Control Program is responsible for assessing non-point source impacts to streams and developing watershed protection plans to characterize impacts to water quality and to identify and implement best management practices to restore water quality.  The Tribe has established approximately forty surface-water quality sampling stations on Pine Ridge Reservation lands.  The sampling stations have been grouped by location into subwatersheds.  Water quality field data and water samples are collected at monthly intervals, typically from May to October, by OST Environmental Protection Program staff for one to two subwatersheds per year.  The water samples are taken to an Environmental Protection Agency (EPA) certified laboratory for water quality testing and the results are returned to the Tribe.  The data represent observational rather than experimental data.  Some degree of randomization exists in terms of water quality concentrations because of: 1) individual water quality parameter concentrations are interdependent and concentrations may change as a result of calcite or fluorapatite precipitation, and 2) increased suspended sediment loads following precipitation events.
-
-```{r sample.site.map}
-station.map
-```
-
-The Oglala Lakota College (OLC) Science Technology Engineering and Mathematics (STEM) Department staff began partnering with the Tribe in 2011 to: 1) analyze and compare water quality data collected by the Oglala Sioux Tribe (OST) Water Quality Program historically from 1993-2011, and for 2012-2013, 2) integrate macroinvertebrate sampling data collected historically from 1993-2011 are for 2012-2013, and to 3) to refine recommendations for future monitoring and implementation of best management practices (BMPs). 
-
-The regional climate is typical of the Northern Great Plains with a median temperature of 50F in January and 73 degrees F in July (SDSU climate website, accessed March 6, 2013).  The average annual precipitation between the years 1971 and 2000 at the Manderson 3 NE station is 19.3 inches with January as the driest month (0.39 inches) and June as the wettest month (3.18 inches).  The Manderson station is slightly drier than the rest of the south-central region of South Dakota, which has an average precipitation of 21.6 +/- 4.5 inches (standard deviation) (SDSU climate website, accessed March 6, 2013).  The Keya Paha Tablelands receives a mean annual precipitation of 16-20 inches while the Pine Ridge Escarpment receives 16-17 inches (Bryce et al, 1998).  The Great Plains has an historical record of major drought (Meyer et al. 1999).  The 2012 drought resulted in zero flow conditions in the White River and a majority of White River tributary streams (Tinant personal observation).  
-
-The amount and frequency of hydrological exchange between the floodplain, groundwater and the stream depends on geology and alluvial composition. Upper White River tributaries begin in central Nebraska as springs. Middle White River tributaries begin in Arikaree Group sandstones and siltstones, and then flow across White River Group volcaniclastic claystones, before draining into the White River (Bryce et al. 1998, Heaken 1999). Sandier units of the Arikaree group form water table aquifers that sustain base flow in the upper reaches of White River tributaries (Heaken 1999).  The hydrologic regime shifts from a mixed flow regime to an event-dominated regime as streams cross the Arikaree Group – White River Group contact as infiltration rates decrease and the volume of overland flow increases (Foreman 2006).   Infiltration, percolation and ground water flow dominates Sandhills ecoregion hydrology in the Little White River watershed.  
-
-## Methods
-We prepared and validated the raw data as a first step in the analysis.  The primary author compiled raw water quality data collected by OST staff from the period of 1993 to 2013 for approximately forty long-term surface water sampling locations across the reservations in an Excel spreadsheet.  The spreadsheet was converted in Excel to a 'csv' format and imported into an R statistical software package running under R Studio.  The format of the raw data was standardized, empty columns removed, grouping variables assigned, and data with values below the laboratory instrument detection limit assigned a value of half the detection limit using the 'janitor' and 'dplyr' packages. Date and time variables were encoded as time-series variables using the 'lubridate' package.  Trace metals concentrations, which were available for approximately half of the observations, and biological variables were removed from the analysis.  Field observations of pH and conductivity were also removed as validation of these parameters indicated instrument calibration was a major factor in the variance of these data.
-
-We prepared the cleaned data for multivariate analysis by estimating missing non-nutrient major cation and anion concentrations.  We filled in missing data using group means from level four ecoregions, sensu Obernick et al, using the dplyr::group_by function. Milliequvilants per liter ionic concentrations were derived by multiplying the absolute value of charge by mass concentration and dividing by the atomic weight. Bicarbonate concentrations for each of the observations were calculated by subtracting the sum of cations from the sum of cations.  
-
-We identified water quality groups following a principal component analysis (PCA) of prepared data that was transformed prior to analysis.  We plotted plots of untransformed and transformed non-nutrient ion data using the 'ggpairs' package as a first step to validating the assumption of multivariate normality.  We applied transformations using the 'dplyr' package after estimating Box-Cox transformation parameters using the 'AID' package.  We calculated an evaluated a PCA using the 'prcomp' function to calculate principal components, and the 'cor' and 'eigen' functions to calculate a correlation matrix and calculate eigenvectors.  We plotted the resulting eigenvectors as a scree-plot using the 'ggplot2' package.  We tidied the significant PCA axes into a data frame using the broom::tidy, broom::augment functions, and tidyr::spread functions.  We joined the results with factor variables using the dplyr:: left_join function.  We plotted the PCA loadings using the ggfortify::autoplot function.  We identified initial water quality groups from natural breaks along the PCA-1, PCA-2, and PCA-3 axes.  We identified final water quality groups after plotting the initial water quality groups on a map using the 'ggmap' package.
-
-## Results
-We found that the PCA analysis of stream water samples explained about 77% of the variance in major non-nutrient ions along three significant axes.  The first PCA-axis explained 54% of variance and is interpreted as describing a gradient of higher conductivity and lower carbonate waters to low conductivity high carbonate waters.  The second PCA-axis explained 13% of variance and is interpreted as describing a gradient of low to high calcium waters.  The third PCA axis explained 10% of variance and is interpreted as describing a gradient of low to high fluorite waters.  However, we feel somewhat cautious of our analysis as the assumption of normality was not met, as shown in pairs plots located in the appendices of this report. The appendices also include information on the PCA loadings.
-
-```{r plot.results}
-rm(pca.pcs)
-
-ggplot(pca.interp, aes(PC1, PC2)) +
-  geom_point(aes(shape = group, color = group)) +
-  theme_tufte() +
-  scale_y_reverse() +
-  xlab("Inc. HCO3 ions (54% of var.) ->") +
-  ylab("Inc. Ca ions (13% of var.) ->") +
-  ggtitle("Interpretation of PCA Results for PRR Stream Water Chemistry",
-          subtitle = "P") +
-  theme(legend.position = "none")
-
-p2 <- ggplot(pca.interp, aes(.fittedPC1, .fittedPC3)) +
-  geom_point(aes(shape = group, color = group)) +
-  theme_tufte() +
-  xlab("Inc. HCO3 ions (54% of var.) ->") + 
-  ylab("Inc F ions (10%) ->") +
-  ggtitle("") +
-  theme(legend.position = "none")
-
-p3 <- ggplot(pca.interp, aes(.fittedPC3, .fittedPC2)) +
-  geom_point(aes(shape = group, color = group)) +
-  theme_tufte() +
-  scale_y_reverse() +
-  ylab("Inc. Ca ions (13%) ->") +
-  xlab("Inc F ions (10% of var.) ->") +
-  theme(legend.position = "bottom")
-  
-p4 <- ggplot(pca.interp.sub, aes(.fittedPC1, .fittedPC3)) +
-  geom_point(aes(shape = final, color = final)) +
-  theme_tufte() +
-  scale_y_reverse() +
-  ylab("Inc. HCO3 ions (54%) ->") +
-  xlab("Inc F ions (10% of var.) ->") +
-  theme(legend.position = "bottom") 
-
-grid.arrange(p1,p2,p3,p4, nrow = 2)
-#ggsave("pca_results.png")
-```
-
-## Discussion
-We identify two water quality groups in addition to the water quality groups observed prior to PCA analysis.  We interpret the Badlands ecoregion as consisting of two water quality groups: a group with relatively steady cation concentrations and a mixed group with varying calcium, sodium, and bicarbonate.  The Cheyenne ecoregion consists of high ionic concentration waters with a low calcium magnesium ratio and high sulfates.  The Sandhills ecoregion consists of  low total ionic concentration and sodium waters with varying calcium concentrations.  We interpret the Tablelands ecoregion as consisting of two water quality groups: a group with relatively steady ionic concentrations and a mixed group made up of waters with varying calcium, sodium, bicarbonate, sulfate, and fluoride concentrations.  We interpret the differences in the Badlands and Tablelands steady and mixed groups to be the result of calcite and/or fluorapatite precipitation.
-
-```{r cation.plot}
-rm(pca.interp.sub)
-cation.plot
-```
-
-```{r anion.plot}
-anion.plot
-```
-
-```{r final.map.plot}
-final.map
-```
-
-## Conclusions and Next Steps
-We identified differences among major non-nutrient cations and anions in Pine Ridge Reservation water samples and classified the samples into water quality groups.  Time limitations prevented MANOVA or MRPP analysis of the groups to determine if the differences among group are significant.  The next step in the analysis are: 1) to use the identified groups as priors for a quadratic discriminant analysis to identify misclassified observations following the exploratory principal component analysis, and 2) to estimate nitrate and phosphorus concentrations from the groups.
-
-##Appendices
-```{r appendix.1.pairs.plot.1}
-pairs.plot1
-```
-
-```{r appendix.2.pairs.plot.2}
-pairs.plot2
-```
-
-```{r appendix.3.pca.output}
-grid.arrange(scree.plot, tbl,
-             ncol=2,
-             as.table=TRUE,
-heights=c(4,2))
-```
-
 
